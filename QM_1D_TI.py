@@ -1,6 +1,3 @@
-import os
-os.path.dirname(os.path.abspath(__file__))
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -157,7 +154,14 @@ class Unitary_Operator_1D(_constants):
 
         # The unitary operator can be found by applying the Cranck-Nicholson
         # method. This method is outlined in great detail in exercise 9.8 of
-        # Mark Newman's Computational Physics [1].
+        # Mark Newman's Computational Physics. Here is a link to a
+        # page containing all problems in his book:
+        # http://www-personal.umich.edu/~mejn/cp/exercises.html
+
+        # Newman, M. (2013). Partial differential equations.
+        # In Computational Physics, chapter 9.
+        # CreateSpace Independent Publishing Platform.
+        
 
         # TODO: This can be optimized.
 
