@@ -5,6 +5,7 @@ from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
 import matplotlib.pyplot as plt
 from QM_1D_TI import _constants, Wavefunction_1D, Unitary_Operator_1D
+from time import perf_counter
 
 np.seterr(all='raise')
 # Make numpy raise errors instead of warnings.
@@ -135,9 +136,12 @@ class QM_1D_Animation(_constants):
         self.fpi = 1    # Set the number of time evolutions per animation frame
         self._t = 0     # Time that has passed
         self._msg_i = 0 # Message counter for displayng temporary messages
+        self.fps = 30   # frames per second
+
+        self.t_perf = [1.0, 0.]
 
         # Set the dpi (Resolution in plt.figure())
-        self._dpi = 150
+        self._dpi = 120
 
         # Boolean Attributes
         # Display the probability function or not
@@ -313,6 +317,7 @@ class QM_1D_Animation(_constants):
         self.lines[2].set_alpha(1.)
         self.lines[3].set_alpha(1.)
         self.lines[0].set_text("—— $|\psi(x)|$")
+        #self.lines[0].set_text("—— |Ψ(x)|")
         self.lines[6].set_alpha(1.)
         self.lines[7].set_alpha(1.)
 
@@ -424,6 +429,7 @@ class QM_1D_Animation(_constants):
         # line5: Text info for Hamiltonian
         # line6: Text info for Im(\psi(x))
         # line7: Text info for Re(\psi(x))
+        # line8: Text info for the potential V(x)
 
         line2, = self.ax.plot(self.x, np.real(self.psi.x),
                               "-",
@@ -446,7 +452,7 @@ class QM_1D_Animation(_constants):
         if np.amax(self.V_x > 0):
             line4, = self.ax.plot(self.x,
                                   (self.V_x/np.amax(self.V_x[1:-2]))*ymax*0.95,
-                                  color="k",
+                                  color="gray",
                                   linestyle='-',
                                   linewidth=0.5)
         else:
@@ -454,29 +460,53 @@ class QM_1D_Animation(_constants):
                                   (self.V_x/
                                    np.abs(np.amin(
                                    self.V_x[1:-2]))*0.95*self.bounds[-1]),
-                                  color="k",
+                                  color="gray",
                                   linestyle='-',
                                   linewidth=0.5)
 
         line5 = self.ax.text((xmax - xmin)*0.01 + xmin,
-                0.95*ymax, "$H = %s + $ %s, \n%s"%(self._KE_ltx,
-                self.V_latex, self._lmts_str))
+                             0.95*ymax,
+                             "$H = %s + $ %s, \n%s"%(self._KE_ltx,
+                                                     self.V_latex,
+                                                     self._lmts_str),
+                             #animated=True
+                             )
 
         line0 = self.ax.text((xmax-xmin)*0.01 + xmin,
                              ymin + (ymax-ymin)*0.05,
-                             "—— $|\psi(x)|$", alpha=1., color="black")
+                             #"—— |Ψ(x)|",
+                             "—— $|\psi(x)|$",
+                             alpha=1.,
+                             animated=True,
+                             color="black"
+                             )
         line6 = self.ax.text((xmax-xmin)*0.01 + xmin,
                              ymin + (ymax-ymin)*0.,
-                             "—— $Im(\psi(x))$", alpha=1., color="C0")
+                             "—— $Re(\psi(x))$",
+                             #"—— Re(Ψ(x))",
+                             alpha=1.,
+                             animated=True,
+                             color="C0"
+                             )
         line7 = self.ax.text((xmax-xmin)*0.01 + xmin,
                              ymin + (ymax-ymin)*(-0.05),
-                             "—— $Re(\psi(x))$", alpha=1., color="C1")
+                             "—— $Im(\psi(x))$",
+                             #"—— Im(Ψ(x))",
+                             alpha=1.,
+                             animated=True,
+                             color="C1"
+                             )
+        line8 = self.ax.text((xmax-xmin)*0.01 + xmin,
+                             ymin + (ymax-ymin)*(0.1),
+                             "—— V(x)",
+                             alpha=1.,
+                             color="gray")
 
         # Show the infinite square well boundary
         self.ax.plot([self.x0, self.x0], [-10, 10],
-                     color="black", linewidth=0.75)
+                     color="gray", linewidth=0.75)
         self.ax.plot([self.x0+self.L, self.x0+self.L], [-10, 10],
-                     color="black", linewidth=0.75)
+                     color="gray", linewidth=0.75)
 
         #Plot the bottom line
         #self.ax.plot([self.x0, self.x0+self.L], [0., 0.],
@@ -495,7 +525,9 @@ class QM_1D_Animation(_constants):
         # Store each line in a list.
         self.lines = [line0, line1, line2, line3,
                       line4, line5,
-                      line6, line7]
+                      line6, line7
+                      #line8
+                      ]
 
         self._main_msg = self.lines[5].get_text()
 
@@ -505,6 +537,9 @@ class QM_1D_Animation(_constants):
         This of course involves advancing the wavefunction
         in time using the unitary operator.
         """
+
+        self.t_perf[0] = self.t_perf[1]
+        self.t_perf[1] = perf_counter()
 
         # Time evolve the wavefunction
         for _ in range(self.fpi):
@@ -533,15 +568,22 @@ class QM_1D_Animation(_constants):
             self.lines[5].set_text(self._msg)
             self._msg_i += -1
         elif (self._msg_i == 0):
-            self.lines[5].set_text(self._main_msg)
+            t0, tf = self.t_perf
+            self._msg_i += -1
+            self.lines[5].set_text(self._main_msg
+                                   #+"\t\t\t\t\t\t   t="+str(np.round(self._t,6))
+                                   #+", fps="+str(int(1/(tf-t0+1e-30)))
+                                   )
 
-        return tuple(self.lines)
+        return (self.lines)
 
     def animation_loop(self):
         """Produce all frames of animation.
         """
         self.main_animation=animation.FuncAnimation\
-                (self.figure, self._animate, blit=True, interval=10)
+                (self.figure, self._animate, blit=True,
+                 interval=1
+                 )
 
 if __name__ == "__main__":
 

@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 class _constants:
     """Fundamental constants,
@@ -161,7 +160,7 @@ class Unitary_Operator_1D(_constants):
         # Newman, M. (2013). Partial differential equations.
         # In Computational Physics, chapter 9.
         # CreateSpace Independent Publishing Platform.
-        
+
 
         # TODO: This can be optimized.
 

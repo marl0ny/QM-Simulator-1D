@@ -6,15 +6,22 @@ np.seterr(all='raise')
 # Make numpy raise errors instead of warnings.
 
 # TODO:
-# -Add citations: Newman's book.
-# -Make some optimizations to the Unitary_Operator_1D class
-# -Clean up the QM_1D_Animation class.
+# -Remove the performance measurements (fps)
+# -display the 0 potential at 0
+# -Check spelling in the README file, for example Cranck-Nicholson
+# (it should be Crank-Nicolson)
+# -Since hbar and mass are set to one, just don't show these.
+# -Degeneracy is possible in 1D. Add this to the measure_energy method.
+# -Optimize the Unitary_Operator_1D class
+# -Make the code look nicer. Particularly, clean up the QM_1D_Animation class.
 # FUTURE FEATURES:
+# -Add a preset potential V(x) dropdown menu
 # -Make it possible to change the mass of the particle and other constants
 # -Allow reshaping of the potential using mouse input
+# -Think of different things to do with mouse input
 # -Make a visualization of the energy levels of the potential
 # -Make the wavefunction viewable in momentum space
-# -Add time dependance
+# -Add time dependant potentials
 
 class Applet(QM_1D_Animation):
     """
@@ -129,7 +136,7 @@ class Applet(QM_1D_Animation):
 
         #Wavefunction entry field
         self.enter_function_label=\
-                        tk.Label(self.window, text="Enter Wavefunction")
+                        tk.Label(self.window, text="Enter Wavefunction \u03C8(x)")
         self.enter_function_label.grid(row=5, column=3, padx=(10,10))
 
         self.enter_function=tk.Entry(self.window)
