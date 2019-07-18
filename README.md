@@ -12,7 +12,7 @@ The following modules are used: Numpy for numerical computation, Sympy for symbo
 
 Make sure you have the latest version of Python with Numpy, Matplotlib, Sympy, and Tkinter installed. The code for this applet is obtained by cloning this repository or downloading it. Ensure that all source code are in the same directory. Now run `Applet.py` - you should get something like:
 
-<img src="https://raw.githubusercontent.com/marl0ny/1D-Time-Independent-Quantum-Mechanics-Applet-Using-Python-and-Tkinter/master/Coherent%20State%20SHO.gif" />
+<img src="https://raw.githubusercontent.com/marl0ny/1D-Time-Independent-Quantum-Mechanics-Applet-Using-Python-and-Tkinter/master/Coherent State SHO 2.gif" />
 
 
 The main window displays our wavefunction &psi;(x), where we show its real part, imaginary part, and absolute value. At the top left corner of the window is an info box, which displays the Hamiltonian H and the boundaries of our quantum system. At the bottom of the window is the x-axis, which extends from -0.5 to 0.5. Note that this scale and all other units of measurement are not in metric units, but in [natural units](https://en.wikipedia.org/wiki/Natural_units), where all fundamental constants are set to one.
