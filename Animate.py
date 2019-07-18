@@ -165,6 +165,7 @@ class QM_1D_Animation(_constants):
         #      -Add helper functions that are common to
         #       set_wavefunction and set_unitary
         #      -Think of all possible inputs
+        #       and sanitization methods
 
         if isinstance(psi, str):
             try:
@@ -222,7 +223,7 @@ class QM_1D_Animation(_constants):
         This also sets up the potential function
         attributes in the process.
         """
-        #TODO: Make this look cleaner
+        #TODO: Simplify this code
 
         if isinstance(V, str):
             try:
@@ -232,9 +233,13 @@ class QM_1D_Animation(_constants):
                     self.V_latex = str(np.round(float(V), 2))
                     if float(V) == 0:
                         V = 1e-30
-                    V_f = float(V)*np.ones([self.N])
-                    self.V_x = V_f
-                    self.U_t = Unitary_Operator_1D(V_f)
+                        V_f = float(V)*np.ones([self.N])
+                        self.U_t = Unitary_Operator_1D(V_f)
+                        self.V_x = 0.0*V_f
+                    else:
+                        V_f = float(V)*np.ones([self.N])
+                        self.V_x = V_f
+                        self.U_t = Unitary_Operator_1D(V_f)
                 else:
                     V_name, V_latex, V_sym , V_f\
                             = convert_to_function(V)
@@ -259,7 +264,7 @@ class QM_1D_Animation(_constants):
                     self.V_f = None
                     self.V_name = "V(x)"
                     self.V_latex = "$V(x)$"
-                    self.U_t = Unitary_Operator_1D(self.V_x)
+                    self.U_t = Unitary_Operator_1D(np.copy(V))
                 except Exception as E:
                     print(E)
         elif isinstance(V, np.ndarray):
@@ -278,6 +283,8 @@ class QM_1D_Animation(_constants):
             elif np.amax(self.V_x < 0):
                 self.lines[4].set_ydata(self.V_x/
                     np.abs(np.amin(self.V_x[1:-2]))*self.bounds[-1]*0.95)
+            else:
+                self.lines[4].set_ydata(self.x*0.0)
             #print(self.V_latex)
             if (self.V_latex.replace(".","").isnumeric() and
                 (float(self.V_latex) == 0.)):
@@ -455,11 +462,17 @@ class QM_1D_Animation(_constants):
                                   color="gray",
                                   linestyle='-',
                                   linewidth=0.5)
-        else:
+        elif np.amax(self.V_x < 0):
             line4, = self.ax.plot(self.x,
                                   (self.V_x/
                                    np.abs(np.amin(
                                    self.V_x[1:-2]))*0.95*self.bounds[-1]),
+                                  color="gray",
+                                  linestyle='-',
+                                  linewidth=0.5)
+        else:
+            line4, = self.ax.plot(self.x,
+                                  self.x*0.0,
                                   color="gray",
                                   linestyle='-',
                                   linewidth=0.5)
@@ -529,6 +542,17 @@ class QM_1D_Animation(_constants):
                       #line8
                       ]
 
+        #Another round of setting up and scaling the line plots ...
+        if np.amax(self.V_x > 0):
+            self.lines[4].set_ydata(self.V_x/
+                                    np.amax(self.V_x[1:-2])*self.bounds[-1]*0.95)
+        elif np.amax(self.V_x < 0):
+            self.lines[4].set_ydata(self.V_x/
+                                    np.abs(np.amin(self.V_x[1:-2]))*self.bounds[-1]*0.95)
+        else:
+            self.lines[4].set_ydata(self.x*0.0)
+
+
         self._main_msg = self.lines[5].get_text()
 
 
@@ -570,10 +594,18 @@ class QM_1D_Animation(_constants):
         elif (self._msg_i == 0):
             t0, tf = self.t_perf
             self._msg_i += -1
-            self.lines[5].set_text(self._main_msg
-                                   #+"\t\t\t\t\t\t   t="+str(np.round(self._t,6))
-                                   #+", fps="+str(int(1/(tf-t0+1e-30)))
-                                   )
+            self.lines[5].set_text(self._main_msg)
+        # elif (self._msg_i < 0):
+        #     t0, tf = self.t_perf
+        #     self.lines[5].set_text(
+        #         "%s%s%s%s%s"%(
+        #             self._main_msg,
+        #             "\t\t\t\t\t\t   t=",
+        #             str(np.round(self._t,6)),
+        #             ", fps=",
+        #             str(np.round(int(1/(tf-t0+1e-30)),-1))
+        #             )
+        #         )
 
         return (self.lines)
 
@@ -584,6 +616,16 @@ class QM_1D_Animation(_constants):
                 (self.figure, self._animate, blit=True,
                  interval=1
                  )
+
+    def get_fpi(self):
+        """Get the number of time evolutions per animation
+        frame"""
+        return self.fpi
+
+    def set_fpi(self, new_fpi):
+        """Set the number of time evolutions per animation frame
+        """
+        self.fpi = new_fpi
 
 if __name__ == "__main__":
 
