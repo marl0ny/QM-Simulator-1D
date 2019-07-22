@@ -1,0 +1,6 @@
+#python_version >= 3.6.5 
+
+numpy >= 1.14.2
+sympy >= 1.1.1
+matplotlib >= 2.2.2
+tkinter >= 8.6

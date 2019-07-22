@@ -1,50 +1,8 @@
 from Animate import *
-from QM_1D_TI import _constants
 import tkinter as tk
 
 np.seterr(all='raise')
 # Make numpy raise errors instead of warnings.
-
-# TODO:
-# -Remove the performance measurements (fps)
-# -Check spelling and grammar in the README file
-# -Since hbar and mass are set to one, just don't show these.
-# -Degeneracy so far has been ignored. Account for this
-#  when enumerating the energy eigenstates
-# -Optimize the Unitary_Operator_1D class
-# -Add some more preset potentials
-# -For the preset potentials, make them independent of the choice
-#  of the box's length and initial position.
-# -Revise the code for the locate_mouse method.
-# -Revise the code contained in the QM_1D_Animation class.
-# -The previous_potential_menu_string attribute is probably not
-#  used. Remove this attribute.
-# -Put an option in the code of whether to output errors or not
-#  so that the command line is not spammed with error messages
-# -If the enter potential by entry fails, don't change the
-#  potential dropdown menu to its default string value.
-# -When reshaping the potential or wavefunction and the simulation is paused,
-#  different Tkinter event attributes are used corresponding to different
-#  versions of Tkinter. Check that these disparate event attributes
-#  produce the same behaviour.
-# -Implement better code for the update_potential_by_sketch method
-#  in the Applet class
-# -When updating the unitary operator attribute in the
-#  update_potential_by_sketch method, use the Animation class methods
-#  to do this instead of directly manipulating unitary operator class.
-# -When paused, remove the ability to measure position and
-#  then measure momentum and vice versa.
-# FUTURE FEATURES:
-# -Use the mouse wheel to cycle through the different energy eigenstates
-# -Use the mouse to construct different functions such as a sinc or gaussian
-# -Think of other things to do with mouse input
-# -Make it possible to change the mass of the particle and other constants
-# -Make a visualization of the energy levels of the potential
-# -Make the wavefunction viewable in momentum space
-# -Think of some other basis to view the wavefunction in
-# -Add time dependant potentials of the form V(x, t)
-# -Add periodic boundaries, if possible
-# -Add non-reflecting boundaries, if possible
 
 class Applet(QM_1D_Animation):
     """
@@ -120,7 +78,7 @@ class Applet(QM_1D_Animation):
         #print(width)
         #dpi = 250
 
-        C = _constants()
+        C = Constants()
         x = np.linspace(C.x0, C.L + C.x0, C.N)
 
         #Defaults
@@ -162,12 +120,6 @@ class Applet(QM_1D_Animation):
                          self.sketch)
         self.canvas.get_tk_widget().bind("<ButtonRelease-1>",
                          self.sketch)
-
-        #Right click Menu
-        self.menu = tk.Menu(self.window, tearoff=0)
-        self.menu.add_command(label="quit", command=self.quit)
-        self.window.bind("<ButtonRelease-3>", self.popup_menu)
-
 
         #Show Probability Distribution/Wavefunction
         self.change_view = tk.Button(self.window,
@@ -399,10 +351,42 @@ class Applet(QM_1D_Animation):
         self.slider_speed.grid(row=17, column=3, padx=(10,10))
         self.slider_speed.set(1)
 
+        
+        #Right click Menu
+        self.menu = tk.Menu(self.window, tearoff=0)
+        self.menu.add_command(label="Measure Position",
+                              command=self.measure_position)
+        self.menu.add_command(label="Measure Momentum",
+                              command=self.measure_momentum)
+        self.menu.insert_separator(3)
+        self.menu.add_command(label="Reshape Wavefunction",
+                              command=lambda *event:
+                              self.mouse_menu_string.set(
+                                  self.mouse_menu_tuple[0]
+                                  )
+                              )
+        self.menu.add_command(label="Reshape Potential",
+                              command=lambda *event:
+                              self.mouse_menu_string.set(
+                                  self.mouse_menu_tuple[2]
+                                  )
+                              )
+        self.menu.insert_separator(6)
+        self.menu.add_command(label="Toggle Expectation Values",
+                              command=self.toggle_expectation_values)
+        self.menu.insert_separator(7)
+        self.menu.add_command(label="Quit", command=self.quit)
+        self.window.bind("<ButtonRelease-3>", self.popup_menu)
+
+
+
         #Quit button
         self.quit_button=tk.Button\
                           (self.window, text='QUIT',command=self.quit)
         self.quit_button.grid(row=18, column=3)
+
+        self.window.bind("<Up>", self.higher_energy_eigenstate)
+        self.window.bind("<Down>", self.lower_energy_eigenstate)
 
         self.animation_loop()
 
@@ -569,6 +553,9 @@ class Applet(QM_1D_Animation):
         elif (str(event.type) == "ButtonRelease" or event.num == 1) \
              and (self.fpi_before_pause == None):
 
+            #note that code within this elif statement is copied
+            #from other places in this function
+
             #Get a scale for the y-coordinates
             #in order for it to match up with the potential
             if not self.potential_is_reshaped:
@@ -639,7 +626,7 @@ class Applet(QM_1D_Animation):
         # the print statements right before this function's return statement
         # and see what they output when clicking on the canvas.
         # Please note, these values are dependant on the values of L and x0
-        # in the inherited _constants class.
+        # in the inherited Constants class.
         if (self._dpi == 100):
             pxi, pxf = 78, 576
             pyi, pyf = 53, 422

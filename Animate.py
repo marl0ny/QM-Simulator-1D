@@ -4,7 +4,7 @@ from sympy import symbols, lambdify, abc, latex, diff, integrate
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
 import matplotlib.pyplot as plt
-from QM_1D_TI import _constants, Wavefunction_1D, Unitary_Operator_1D
+from QM_1D_TI import Constants, Wavefunction_1D, Unitary_Operator_1D
 from time import perf_counter
 
 np.seterr(all='raise')
@@ -86,7 +86,7 @@ def ordinate_LaTEX(number_string):
     else:
         return number_string + "^{th}"
 
-class QM_1D_Animation(_constants):
+class QM_1D_Animation(Constants):
     """
     Class for QM Animation
 
@@ -146,6 +146,12 @@ class QM_1D_Animation(_constants):
         # Boolean Attributes
         # Display the probability function or not
         self._display_probs = False
+
+        #Whether to show expectation value or not
+        self._show_exp_val = False
+
+        #tuple containing the position of the message
+        self._msg_pos = (0, 0)
 
         # Numpy array of positions
         self.x = np.linspace(self.x0,
@@ -333,12 +339,71 @@ class QM_1D_Animation(_constants):
         Measure the energy. This collapses the wavefunction
         to the most probable energy eigenstate.
         """
+        if not hasattr(self.U_t, "energy_eigenvalues"):
+            self.U_t.Set_Energy_Eigenstates()
         EE = np.sort(np.real(self.U_t.energy_eigenvalues))
         EEd = {E:(i + 1) for i, E in enumerate(EE)}
         E = self.psi.set_to_eigenstate(
             self.U_t.energy_eigenvalues,
             self.U_t.energy_eigenstates)
         n = ordinate(str(EEd[np.real(E)]))
+        self._msg = "Energy E = %s\n(%s energy level)"%(
+        str(np.round(np.real(E), 1)), n)
+        self._msg_i = 50
+
+    def lower_energy_eigenstate(self, *args):
+        """
+        Go to a lower energy eigenstate
+        """
+        if not hasattr(self.U_t, "energy_eigenvalues"):
+            self.U_t.Set_Energy_Eigenstates()
+        if not hasattr(self.U_t, "_nE"):
+            self.U_t._nE = 0
+            self._nE = 0
+            ind = np.argsort(
+                np.real(self.U_t.energy_eigenvalues))
+            eigvects = np.copy(self.U_t.energy_eigenstates)
+            eigvals = np.copy(self.U_t.energy_eigenvalues)
+            for i, j in enumerate(ind):
+                eigvals[i] = self.U_t.energy_eigenvalues[j]
+                eigvects[i] = self.U_t.energy_eigenstates.T[j]
+            self.U_t.energy_eigenvalues = eigvals
+            self.U_t.energy_eigenstates = eigvects.T
+        self.U_t._nE -= 1 if self.U_t._nE > 0 else 0
+        n = self.U_t._nE
+        E = np.real(self.U_t.energy_eigenvalues[n])
+        self.psi.x = self.U_t.energy_eigenstates.T[n]
+        self.psi.normalize()
+        n = ordinate(str(n + 1))
+        self._msg = "Energy E = %s\n(%s energy level)"%(
+        str(np.round(np.real(E), 1)), n)
+        self._msg_i = 50
+
+    def  higher_energy_eigenstate(self, *args):
+        """
+        Go to a lower energy eigenstate
+        """
+        #Copy and paste from the measure_energy method
+        if not hasattr(self.U_t, "energy_eigenvalues"):
+            self.U_t.Set_Energy_Eigenstates()
+        if not hasattr(self.U_t, "_nE"):
+            self.U_t._nE = 0
+            self._nE = -1
+            ind = np.argsort(
+                np.real(self.U_t.energy_eigenvalues))
+            eigvects = np.copy(self.U_t.energy_eigenstates)
+            eigvals = np.copy(self.U_t.energy_eigenvalues)
+            for i, j in enumerate(ind):
+                eigvals[i] = self.U_t.energy_eigenvalues[j]
+                eigvects[i] = self.U_t.energy_eigenstates.T[j]
+            self.U_t.energy_eigenvalues = eigvals
+            self.U_t.energy_eigenstates = eigvects.T
+        self.U_t._nE += 1 if self.U_t._nE < self.N - 1 else 0
+        n = self.U_t._nE
+        E = np.real(self.U_t.energy_eigenvalues[n])
+        self.psi.x = self.U_t.energy_eigenstates.T[n]
+        self.psi.normalize()
+        n = ordinate(str(n + 1))
         self._msg = "Energy E = %s\n(%s energy level)"%(
         str(np.round(np.real(E), 1)), n)
         self._msg_i = 50
@@ -359,7 +424,7 @@ class QM_1D_Animation(_constants):
         """
         p = self.psi.set_to_momentum_eigenstate()
         freq = str(int(p*(1/(2*np.pi*self.hbar/self.L))))
-        self._msg = "Momentum p = %s\n(frequency = %s)"%(
+        self._msg = "Momentum p = %s\n(k = %s)"%(
         str(np.round(p, 3)), freq)
         self._msg_i = 50
 
@@ -381,6 +446,22 @@ class QM_1D_Animation(_constants):
         self.U_t.hbar = hbar
         self.U_t = self.set_unitary(self.V_x)
 
+    def toggle_expectation_values(self):
+        """
+        toggle whether to show expectation values
+        or not
+        """
+        if self._show_exp_val == True:
+            self.lines[5].set_text(self._main_msg)
+            self.lines[5].set_position(self._msg_pos)
+        else:
+            self._msg_pos = self.lines[5].get_position()
+            x, y = self._msg_pos
+            self.lines[5].set_position((x, y*0.85))
+            
+        self._show_exp_val = not self._show_exp_val
+        
+
     def _init_plots(self):
         """
         Initialize the animation.
@@ -390,7 +471,7 @@ class QM_1D_Animation(_constants):
         """
 
         # Please note, if you change attributes L and x0 in the
-        # base _constants class, you may also need to change:
+        # base Constants class, you may also need to change:
         # - The location of text labels
 
         # Make matplotlib figure object
@@ -484,6 +565,7 @@ class QM_1D_Animation(_constants):
                                                      self._lmts_str),
                              #animated=True
                              )
+
 
         line0 = self.ax.text((xmax-xmin)*0.01 + xmin,
                              ymin + (ymax-ymin)*0.05,
@@ -595,17 +677,28 @@ class QM_1D_Animation(_constants):
             t0, tf = self.t_perf
             self._msg_i += -1
             self.lines[5].set_text(self._main_msg)
-        # elif (self._msg_i < 0):
-        #     t0, tf = self.t_perf
-        #     self.lines[5].set_text(
-        #         "%s%s%s%s%s"%(
-        #             self._main_msg,
-        #             "\t\t\t\t\t\t   t=",
-        #             str(np.round(self._t,6)),
-        #             ", fps=",
-        #             str(np.round(int(1/(tf-t0+1e-30)),-1))
-        #             )
-        #         )
+        elif (self._show_exp_val and self._msg_i < 0):
+            if not hasattr(self.U_t, "energy_eigenvalues"):
+                self.U_t.Set_Energy_Eigenstates()
+            self.lines[5].set_text(
+                "t = %f\n<x> = %.2f\n<p> = %.2f\n<E> = %.0f"%(
+                    self._t,
+                    self.psi.expectation_value(self.x, self.U_t.I),
+                    self.psi.expected_momentum(),
+                    self.psi.expectation_value(self.U_t.energy_eigenvalues,
+                                               self.U_t.energy_eigenstates)
+                    )
+                )
+##            t0, tf = self.t_perf
+##            self.lines[5].set_text(
+##                "%s%s%s%s%s"%(
+##                    self._main_msg,
+##                    "\t\t\t\t\t\t   t=",
+##                    str(np.round(self._t,6)),
+##                    ", fps=",
+##                    str(np.round(int(1/(tf-t0+1e-30)),-1))
+##                    )
+##                )
 
         return (self.lines)
 
@@ -632,7 +725,7 @@ if __name__ == "__main__":
     from matplotlib import interactive
     interactive(True)
 
-    C = _constants()
+    C = Constants()
     x = np.linspace(C.x0, (C.L + C.x0), C.N)
     V = (x)**2/2
     #psi = np.exp(-0.5*((x-0.25)/0.05)**2)
