@@ -2,24 +2,13 @@ import numpy as np
 from numba import jit, prange, c16, f8
 from numba.types import Tuple
 
-@jit('c16[:](c16[:,:], c16[:])', parallel=True, cache=True, nopython=True)
+@jit('c16[:](c16[:,:], c16[:])', parallel=True, nogil=True, nopython=True)
 def _time_evolve_wavefunction(U, psix):
-    return np.dot(U, psix)
+    psix = np.dot(U, psix)
+    return psix
 
-@jit('c16[:,:](c16[:], f8, f8, i8, f8, f8)', parallel=True, nopython=True)
-def _construct_U(V, m, hbar, N, dx, dt):
-
-    #Initialize A and B matrices
-    A = np.zeros((N, N), np.complex128)
-    B = np.zeros((N, N), np.complex128)
-
-    # \Delta t \frac{i \hbar}{2m \Delta x^2}
-    #K = np.dtype(np.complex128)
-    K=(dt*1.0j*hbar)/(4*m*dx**2)
-
-    # \frac{\Delta t i \hbar}{2}
-    #J = np.dtype(np.complex128)
-    J=(dt*1.0j)/(2*hbar)
+@jit('void(i8, c16, c16, c16[:], c16[:,:], c16[:,:])', cache=True, nogil=True, nopython=True)
+def _fill_AB(N, K, J, V, A, B):
 
     #Initialize the constant,
     #nonzero elements of the A and B matrices
@@ -44,13 +33,57 @@ def _construct_U(V, m, hbar, N, dx, dt):
                 B[i][l] = b2
                 B[l][i] = b2
 
-    return np.dot(np.linalg.inv(A), B)
+@jit('c16[:,:](c16[:], f8, f8, i8, f8, f8)', parallel=True, nogil=True, nopython=True)
+def _construct_U(V, m, hbar, N, dx, dt):
 
-@jit('Tuple((c16[:], c16[:,:]))(c16[:,:])', cache=True, nopython=True)
+    #Initialize A and B matrices
+    A = np.zeros((N, N), np.complex128)
+    B = np.zeros((N, N), np.complex128)
+
+    # \Delta t \frac{i \hbar}{2m \Delta x^2}
+    #K = np.dtype(np.complex128)
+    K=(dt*1.0j*hbar)/(4*m*dx**2)
+
+    # \frac{\Delta t i \hbar}{2}
+    #J = np.dtype(np.complex128)
+    J=(dt*1.0j)/(2*hbar)
+
+    _fill_AB(N, K, J, V, A, B)
+
+    """
+    #Initialize the constant,
+    #nonzero elements of the A and B matrices
+    a1 = 1 + 2*K
+    a2 = -K
+    b1 = 1 - 2*K
+    b2 = K
+
+    #Construct the A and B matrices
+    for i in range (N):
+        for l in range (N):
+            if (i == l):
+
+                A[i][l] = a1 + J*V[i]
+                B[i][l] = b1 - J*V[i]
+
+            elif (l == (i + 1)):
+
+                A[i][l] = a2
+                A[l][i] = a2
+
+                B[i][l] = b2
+                B[l][i] = b2
+    """
+
+    invA = np.linalg.inv(A)
+    return np.dot(invA, B)
+    
+
+@jit('Tuple((c16[:], c16[:,:]))(c16[:,:])', cache=True, nogil=True, nopython=True)
 def _get_eig(H):
     return np.linalg.eig(H)
 
-@jit('c16[:,:](c16, c16[:,:], c16[:,:])', parallel=True, nopython=True)
+@jit('c16[:,:](c16, c16[:,:], c16[:,:])', parallel=True, nogil=True, nopython=True)
 def _mat_diff(s, A, B):
     return s*(A - B)
 
@@ -108,14 +141,36 @@ class Wavefunction_1D(Constants):
         super().__init__()
 
         if callable(waveform):
-            self.x = waveform(np.linspace(self.x0,
-                                          (self.L + self.x0),
-                                          self.N))
-            self.x = self.x.astype(np.complex128)
+
+            #Depending on the version of sympy,
+            #passing arrays to lambdified functions
+            #produces an error
+            try:
+                self.x = waveform(np.linspace(self.x0,
+                                              (self.L + self.x0),
+                                              self.N))
+            except:
+                tmpx = np.linspace(self.x0,(self.L + self.x0),
+                                   self.N)
+                self.x = np.array([waveform(x) for x in tmpx])
+                
+
+            #This is a quick fix to the issue where the
+            #lambdify function returns a single 0 for all
+            #input, which occurs when strings of the
+            #form "0*x" are inputed.
+            try:
+                len(self.x)
+            except TypeError as E:
+                print(E)
+                return np.array(
+                    [float(self.x) for _ in self.N])
+            
+            self.x = self.x.astype(np.complex128, order="F")
 
         elif isinstance(waveform,np.ndarray):
             self.x = waveform
-            self.x = self.x.astype(np.complex128)
+            self.x = self.x.astype(np.complex128, order="F")
 
     def normalize(self):
         """Normalize the wavefunction
@@ -154,6 +209,42 @@ class Wavefunction_1D(Constants):
         freq = np.fft.fftfreq(self.N, d=self.dx)
         p = 2*np.pi*freq*self.hbar/self.L
         return np.dot(p, prob)
+
+    def avg_and_std(self, eigenvalues, eigenstates):
+        """Find the expectation value and the standard deviation
+        of the wavefunction with respect to the eigenvalues and
+        eigenstates of a Hermitian Operator
+        """
+        try:
+            prob = np.abs(np.dot(self.x, eigenstates))**2
+            if (np.max(prob) != 0.):
+                prob = prob/np.sum(prob)
+
+            expval = np.sum(np.dot(np.real(eigenvalues), prob))
+            expval2 = np.sum(np.dot(np.real(eigenvalues)**2, prob))
+            sigma = np.sqrt(expval2 - expval**2)
+            return (expval, sigma)
+
+        except FloatingPointError as E:
+            print(E)
+            return (0., 0.)
+
+    def p_avg_and_std(self):
+        """Find the expectation value and the standard deviation
+        of the wavefunction with respect to the eigenvalues and
+        eigenstates of the momentum operator
+        """
+        F = np.fft.fft(self.x)
+        prob = np.abs(F)**2
+        if (np.max(prob) != 0.):
+            prob = prob/np.sum(prob)
+        freq = np.fft.fftfreq(self.N, d=self.dx)
+        p = 2*np.pi*freq*self.hbar/self.L
+
+        expval = np.sum(np.dot(p, prob))
+        expval2 = np.sum(np.dot(p**2, prob))
+        sigma = np.sqrt(expval2 - expval**2)
+        return (expval, sigma)
 
     def set_to_momentum_eigenstate(self):
         """Set the wavefunction to an allowable

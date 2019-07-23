@@ -10,7 +10,7 @@ from time import perf_counter
 np.seterr(all='raise')
 # Make numpy raise errors instead of warnings.
 
-def convert_to_function(string):
+def convert_to_function(string, scale_by_k=False):
     """Using the sympy module, parse string input
     into a mathematical expression.
     Returns the original string, the latexified string,
@@ -18,7 +18,10 @@ def convert_to_function(string):
     and a lambdified function
     """
     symbolic_function = parse_expr(string)
-    latexstring = latex(symbolic_function)
+    if scale_by_k:
+        latexstring = latex(symbolic_function*abc.k)
+    else:
+        latexstring = latex(symbolic_function)
     lambda_function = lambdify(abc.x, symbolic_function)
     string = string.replace('*', '')
     latexstring="$" + latexstring + "$"
@@ -137,6 +140,9 @@ class QM_1D_Animation(Constants):
         self._t = 0     # Time that has passed
         self._msg_i = 0 # Message counter for displayng temporary messages
         self.fps = 30   # frames per second
+        self.fps_total = 0 #Total number of fps
+        self.avg_fps = 0  # Average fps
+        self.ticks = 0    # total number of ticks
 
         self.t_perf = [1.0, 0.]
 
@@ -240,15 +246,17 @@ class QM_1D_Animation(Constants):
                     if float(V) == 0:
                         V = 1e-30
                         V_f = float(V)*np.ones([self.N])
-                        self.U_t = Unitary_Operator_1D(V_f)
+                        self.U_t = Unitary_Operator_1D(np.copy(V_f))
                         self.V_x = 0.0*V_f
                     else:
                         V_f = float(V)*np.ones([self.N])
                         self.V_x = V_f
-                        self.U_t = Unitary_Operator_1D(V_f)
+                        self.U_t = Unitary_Operator_1D(np.copy(V_f))
+                        self.V_latex = "%sk"%(self.V_latex) if V_f[0] > 0\
+                                       else " %sk"%(self.V_latex)
                 else:
                     V_name, V_latex, V_sym , V_f\
-                            = convert_to_function(V)
+                            = convert_to_function(V, scale_by_k=True)
                     tmp = np.complex((V_f(2.)))
                     self.V = V_f
                     self.V_x = V_f(self.x)
@@ -260,8 +268,6 @@ class QM_1D_Animation(Constants):
                 print(E)
                 try:
                     x = self.x
-                    #[(10 if (i > 100 and i < 130) else 0)
-                    # for i in range(self.N)]
                     V = eval(V)
                     if isinstance(V, list):
                         self.V_x = np.array(V, np.float64)
@@ -457,7 +463,11 @@ class QM_1D_Animation(Constants):
         else:
             self._msg_pos = self.lines[5].get_position()
             x, y = self._msg_pos
-            self.lines[5].set_position((x, y*0.85))
+            #If not, showing any fps stats or stdevs
+            #change y to y*0.8
+            #If also showing fps stats, change to 0.5
+            #If showing both fps stats and stdevs change to 0.1
+            self.lines[5].set_position((x, y*0.1))
             
         self._show_exp_val = not self._show_exp_val
         
@@ -603,10 +613,6 @@ class QM_1D_Animation(Constants):
         self.ax.plot([self.x0+self.L, self.x0+self.L], [-10, 10],
                      color="gray", linewidth=0.75)
 
-        #Plot the bottom line
-        #self.ax.plot([self.x0, self.x0+self.L], [0., 0.],
-        #             color="black", linewidth=0.25, linestyle = "--")
-
         # Record the plot boundaries
         ymin, ymax = self.ax.get_ylim()
         xmin, xmax = self.ax.get_xlim()
@@ -626,14 +632,37 @@ class QM_1D_Animation(Constants):
 
         #Another round of setting up and scaling the line plots ...
         if np.amax(self.V_x > 0):
-            self.lines[4].set_ydata(self.V_x/
-                                    np.amax(self.V_x[1:-2])*self.bounds[-1]*0.95)
+            V_max = np.amax(self.V_x[1:-2])
+            V_scale = self.V_x/V_max*self.bounds[-1]*0.95
+            self.lines[4].set_ydata(V_scale)
         elif np.amax(self.V_x < 0):
-            self.lines[4].set_ydata(self.V_x/
-                                    np.abs(np.amin(self.V_x[1:-2]))*self.bounds[-1]*0.95)
+            V_max = np.abs(np.amin(self.V_x[1:-2]))
+            V_scale = self.V_x/V_max*self.bounds[-1]*0.95
+            self.lines[4].set_ydata(V_scale)
         else:
             self.lines[4].set_ydata(self.x*0.0)
 
+        #Manually plot gird lines
+##        maxp = self.bounds[-1]*0.95
+##        self.ax.plot([self.x0, self.x0+self.L], [0., 0.],
+##                     color="gray", linewidth=0.5, linestyle = "--")
+##        self.ax.plot([self.x0, self.x0+self.L], [maxp, maxp],
+##                     color="gray", linewidth=0.5, linestyle = "--")
+##        self.ax.plot([self.x0, self.x0+self.L], [-maxp, -maxp],
+##                     color="gray", linewidth=0.5, linestyle = "--")
+##        #self.ax.plot([0, 0], [-self.bounds[-1], self.bounds[-1]],
+##        #             color="gray", linewidth=0.5, linestyle = "--")
+##
+##        #Show where the potential is zero
+##        self.ax.text(xmax*0.8, 0.03, "V = 0", color="black", fontdict={'size':8})
+##        self.lines.append(self.ax.text
+##                          (xmax*0.8, maxp,
+##                           "V = %s.0f"%(V_max),
+##                           color="black", fontdict={'size':8}))
+##        self.lines.append(self.ax.text
+##                          (xmax*0.8, -maxp,
+##                           "V = %s.0f"%(-V_max),
+##                           color="black", fontdict={'size':8}))
 
         self._main_msg = self.lines[5].get_text()
 
@@ -669,6 +698,14 @@ class QM_1D_Animation(Constants):
         self.lines[2].set_ydata(np.real(self.psi.x))
         self.lines[3].set_ydata(np.imag(self.psi.x))
 
+        # Find fps stats
+        t0, tf = self.t_perf
+        self.ticks += 1
+        self.fps = int(1/(tf - t0 + 1e-30))
+        if self.ticks > 1:
+            self.fps_total += self.fps
+        self.avg_fps = int(self.fps_total/(self.ticks))
+
         # Output temporary text messages
         if (self._msg_i > 0):
             self.lines[5].set_text(self._msg)
@@ -677,18 +714,51 @@ class QM_1D_Animation(Constants):
             t0, tf = self.t_perf
             self._msg_i += -1
             self.lines[5].set_text(self._main_msg)
+
         elif (self._show_exp_val and self._msg_i < 0):
             if not hasattr(self.U_t, "energy_eigenvalues"):
                 self.U_t.Set_Energy_Eigenstates()
+            x_mean, x_sigma = self.psi.avg_and_std(self.x, self.U_t.I)
+            p_mean, p_sigma = self.psi.p_avg_and_std()
+            E_mean, E_sigma = self.psi.avg_and_std(
+                self.U_t.energy_eigenvalues,
+                self.U_t.energy_eigenstates
+                )
             self.lines[5].set_text(
-                "t = %f\n<x> = %.2f\n<p> = %.2f\n<E> = %.0f"%(
+                "t = %f\nfps = %i\n"
+                "avg_fps = %i\n"
+                "<x> = %.2f\n"
+                "<p> = %.2f\n"
+                "<E> = %.0f\n"
+                "σₓ = %.2f\n"
+                "σₚ = %.2f\n"
+                "σᴇ = %.0f"%(
                     self._t,
-                    self.psi.expectation_value(self.x, self.U_t.I),
-                    self.psi.expected_momentum(),
-                    self.psi.expectation_value(self.U_t.energy_eigenvalues,
-                                               self.U_t.energy_eigenstates)
+                    self.fps,
+                    self.avg_fps,
+                    x_mean,
+                    p_mean,
+                    E_mean,
+                    x_sigma,
+                    p_sigma,
+                    E_sigma
                     )
                 )
+            
+##        elif (self._show_exp_val and self._msg_i < 0):
+##            if not hasattr(self.U_t, "energy_eigenvalues"):
+##                self.U_t.Set_Energy_Eigenstates()
+##            self.lines[5].set_text(
+##                "t = %f\n<x> = %.2f\n<p> = %.2f\n<E> = %.0f"%(
+##                    self._t,
+##                    self.psi.expectation_value(self.x, self.U_t.I),
+##                    self.psi.expected_momentum(),
+##                    self.psi.expectation_value(self.U_t.energy_eigenvalues,
+##                                               self.U_t.energy_eigenstates)
+##                    )
+##                )
+
+            
 ##            t0, tf = self.t_perf
 ##            self.lines[5].set_text(
 ##                "%s%s%s%s%s"%(

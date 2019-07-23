@@ -54,9 +54,30 @@ class Wavefunction_1D(Constants):
         super().__init__()
 
         if callable(waveform):
-            self.x = waveform(np.linspace(self.x0,
-                                          (self.L + self.x0),
-                                          self.N))
+
+            #Depending on the version of sympy,
+            #passing arrays to lambdified functions
+            #produces an error
+            try:
+                self.x = waveform(np.linspace(self.x0,
+                                              (self.L + self.x0),
+                                              self.N))
+            except:
+                tmpx = np.linspace(self.x0,(self.L + self.x0),
+                                   self.N)
+                self.x = np.array([waveform(x) for x in tmpx])
+                
+
+            #This is a quick fix to the issue where the
+            #lambdify function returns a single 0 for all
+            #input, which occurs when strings of the
+            #form "0*x" are inputed.
+            try:
+                len(self.x)
+            except TypeError as E:
+                print(E)
+                return np.array(
+                    [float(self.x) for _ in self.N])
 
         elif isinstance(waveform,np.ndarray):
             self.x = waveform
@@ -96,6 +117,42 @@ class Wavefunction_1D(Constants):
         freq = np.fft.fftfreq(self.N, d=self.dx)
         p = 2*np.pi*freq*self.hbar/self.L
         return np.dot(p, prob)
+
+    def avg_and_std(self, eigenvalues, eigenstates):
+        """Find the expectation value and the standard deviation
+        of the wavefunction with respect to the eigenvalues and
+        eigenstates of a Hermitian Operator
+        """
+        try:
+            prob = np.abs(np.dot(self.x, eigenstates))**2
+            if (np.max(prob) != 0.):
+                prob = prob/np.sum(prob)
+
+            expval = np.sum(np.dot(np.real(eigenvalues), prob))
+            expval2 = np.sum(np.dot(np.real(eigenvalues)**2, prob))
+            sigma = np.sqrt(expval2 - expval**2)
+            return (expval, sigma)
+
+        except FloatingPointError as E:
+            print(E)
+            return (0., 0.)
+
+    def p_avg_and_std(self):
+        """Find the expectation value and the standard deviation
+        of the wavefunction with respect to the eigenvalues and
+        eigenstates of the momentum operator
+        """
+        F = np.fft.fft(self.x)
+        prob = np.abs(F)**2
+        if (np.max(prob) != 0.):
+            prob = prob/np.sum(prob)
+        freq = np.fft.fftfreq(self.N, d=self.dx)
+        p = 2*np.pi*freq*self.hbar/self.L
+
+        expval = np.sum(np.dot(p, prob))
+        expval2 = np.sum(np.dot(p**2, prob))
+        sigma = np.sqrt(expval2 - expval**2)
+        return (expval, sigma)
 
     def set_to_momentum_eigenstate(self):
         """Set the wavefunction to an allowable

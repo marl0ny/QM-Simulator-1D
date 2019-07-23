@@ -22,13 +22,13 @@ psi1 = QM.Wavefunction_1D(cospi)
 psi2 = QMN.Wavefunction_1D(cospi)
 
 t1 = perf_counter()
-for _ in range (100):
+for _ in range (1000):
     U1(psi1)
 t2 = perf_counter()
 print(t2 - t1)
 
 t1 = perf_counter()
-for _ in range (100):
+for _ in range (1000):
     U2(psi2)
 t2 = perf_counter()
 print(t2 - t1)
