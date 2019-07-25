@@ -1,13 +1,14 @@
 import numpy as np
 from numba import jit, prange, c16, f8
 from numba.types import Tuple
+#from time import perf_counter
 
 @jit('c16[:](c16[:,:], c16[:])', parallel=True, nogil=True, nopython=True)
 def _time_evolve_wavefunction(U, psix):
     psix = np.dot(U, psix)
     return psix
 
-@jit('void(i8, c16, c16, c16[:], c16[:,:], c16[:,:])', cache=True, nogil=True, nopython=True)
+@jit('void(i8, c16, c16, c16[:], c16[:,:], c16[:,:])', parallel=True, nogil=True, nopython=True)
 def _fill_AB(N, K, J, V, A, B):
 
     #Initialize the constant,
@@ -18,8 +19,8 @@ def _fill_AB(N, K, J, V, A, B):
     b2 = K
 
     #Construct the A and B matrices
-    for i in range (N):
-        for l in range (N):
+    for i in prange (N):
+        for l in prange (N):
             if (i == l):
 
                 A[i][l] = a1 + J*V[i]
@@ -33,7 +34,7 @@ def _fill_AB(N, K, J, V, A, B):
                 B[i][l] = b2
                 B[l][i] = b2
 
-@jit('c16[:,:](c16[:], f8, f8, i8, f8, f8)', parallel=True, nogil=True, nopython=True)
+#@jit('c16[:,:](c16[:], f8, f8, i8, f8, f8)', parallel=True, nogil=True, nopython=True)
 def _construct_U(V, m, hbar, N, dx, dt):
 
     #Initialize A and B matrices
@@ -77,7 +78,7 @@ def _construct_U(V, m, hbar, N, dx, dt):
 
     invA = np.linalg.inv(A)
     return np.dot(invA, B)
-    
+
 
 @jit('Tuple((c16[:], c16[:,:]))(c16[:,:])', cache=True, nogil=True, nopython=True)
 def _get_eig(H):
@@ -86,6 +87,10 @@ def _get_eig(H):
 @jit('c16[:,:](c16, c16[:,:], c16[:,:])', parallel=True, nogil=True, nopython=True)
 def _mat_diff(s, A, B):
     return s*(A - B)
+
+@jit('c16[:](c16[:], c16[:])', parallel=True, nogil=True, nopython=True)
+def _vect_add(a, b):
+    return a + b
 
 class Constants:
     """Fundamental constants,
@@ -153,7 +158,7 @@ class Wavefunction_1D(Constants):
                 tmpx = np.linspace(self.x0,(self.L + self.x0),
                                    self.N)
                 self.x = np.array([waveform(x) for x in tmpx])
-                
+
 
             #This is a quick fix to the issue where the
             #lambdify function returns a single 0 for all
@@ -165,7 +170,7 @@ class Wavefunction_1D(Constants):
                 print(E)
                 return np.array(
                     [float(self.x) for _ in self.N])
-            
+
             self.x = self.x.astype(np.complex128, order="F")
 
         elif isinstance(waveform,np.ndarray):
@@ -277,6 +282,11 @@ class Wavefunction_1D(Constants):
         choice = np.random.choice(a=freq, size=1,
                                   p=prob, replace=False)
         k = choice[0]
+        if k == 0.0:
+            self.x = np.ones([self.N])
+            self.normalize()
+            p = 2*np.pi*k*self.hbar/self.L
+            return p
         freq = np.array(
             [(0. if f != k else f) for f in freq])
         F = freq*F
@@ -313,8 +323,6 @@ class Unitary_Operator_1D(Constants):
     Attributes:
     U [np.ndarray]: Unitary time evolution matrix
     I [np.ndarray]: Identity matrix
-    H [np.ndarray]: Hamiltonian operator which is the
-       generator for time evolution.
     energy_eigenstates: Energy eigenstates of the
     [np.ndarray]        Hamiltonian
     energy_eigenvalues: The corresponding energy
@@ -357,8 +365,14 @@ class Unitary_Operator_1D(Constants):
 
 
         #Get the unitary operator
+        
+        #t1 = perf_counter()
+        
         self.U = _construct_U(V, m, hbar, N, dx, dt)
         self.U = self.U.astype(np.complex128, order="F")
+
+        #t2 = perf_counter()
+        #print(t2 - t1)
 
         #The identity operator is what the unitary matrix
         #reduces to at time zero. Also,
@@ -378,25 +392,48 @@ class Unitary_Operator_1D(Constants):
         #wavefunction.x = np.matmul(self.U, wavefunction.x)
         wavefunction.x = _time_evolve_wavefunction(self.U, wavefunction.x)
 
-    def Set_Hamiltonian(self):
-        """Set the hamiltonian.
+    def _set_HU(self):
+        """Set HU (the Hamiltonian times the unitary operator).
+        Note that HU is not Hermitian.
         """
-        #The Hamiltonian H is the time derivative of U.
-
+        #The Hamiltonian H is proportional to the
+        #time derivative of U times its inverse
 
         hbar = np.dtype(np.complex128)
         dt = np.dtype(np.complex128)
         ihbar = 1.0j*self.hbar
         dt = self.dt
-        self.H = _mat_diff((ihbar/dt), self.U, self.I)
+        self._HU = _mat_diff((ihbar/dt), self.U, np.conj(self.U.T))
 
 
     def Set_Energy_Eigenstates(self):
         """Set the eigenstates and energy eigenvalues.
         """
+        
+        #t1 = perf_counter()
+        
+        self._set_HU()
 
-        self.Set_Hamiltonian()
+        eigvals, eigvects = _get_eig(self._HU)
+        eigvects = eigvects.T
+        eigvals = np.sign(np.real(eigvals))*np.abs(eigvals)
 
-        E, Eig = _get_eig(self.H)
-        self.energy_eigenstates = Eig
-        self.energy_eigenvalues = E
+        #np.linalg.eig may return degenerate eigenvectors, which is impossible
+        #in 1D QM. The quick remedy to this is to simply add these degenerate
+        #eigenstates into a single one. Actually, the eigenenergies may be
+        #different, just by a very small amount. 
+
+        tmp_dict = {}
+        for i in range(len(eigvals)):
+            E = np.round(eigvals[i], 7)
+            if E in tmp_dict:
+                tmp_dict[E] = _vect_add(eigvects[i], tmp_dict[E])
+            else:
+                tmp_dict[E] = eigvects[i]
+
+        eigvals, eigvects = tmp_dict.keys(), tmp_dict.values()
+        self.energy_eigenvalues = np.array(list(eigvals))
+        self.energy_eigenstates = np.array(list(eigvects), np.complex128).T
+
+        #t2 = perf_counter()
+        #print(t2 - t1)

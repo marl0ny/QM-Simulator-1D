@@ -33,6 +33,7 @@ class Constants:
         self.dt = 0.00001       # Time stepsize
 
         self._scale=(128/self.N)*5e5
+        # For 512 data points, this value is 125000
 
     def _get_constants(self):
         """
@@ -66,7 +67,7 @@ class Wavefunction_1D(Constants):
                 tmpx = np.linspace(self.x0,(self.L + self.x0),
                                    self.N)
                 self.x = np.array([waveform(x) for x in tmpx])
-                
+
 
             #This is a quick fix to the issue where the
             #lambdify function returns a single 0 for all
@@ -185,6 +186,11 @@ class Wavefunction_1D(Constants):
         choice = np.random.choice(a=freq, size=1,
                                   p=prob, replace=False)
         k = choice[0]
+        if k == 0.0:
+            self.x = np.ones([self.N])
+            self.normalize()
+            p = 2*np.pi*k*self.hbar/self.L
+            return p
         freq = np.array(
             [(0. if f != k else f) for f in freq])
         F = freq*F
@@ -221,8 +227,6 @@ class Unitary_Operator_1D(Constants):
     Attributes:
     U [np.ndarray]: Unitary time evolution matrix
     I [np.ndarray]: Identity matrix
-    H [np.ndarray]: Hamiltonian operator which is the
-       generator for time evolution.
     energy_eigenstates: Energy eigenstates of the
     [np.ndarray]        Hamiltonian
     energy_eigenvalues: The corresponding energy
@@ -315,16 +319,36 @@ class Unitary_Operator_1D(Constants):
 
         wavefunction.x = np.matmul(self.U, wavefunction.x)
 
-    def Set_Hamiltonian(self):
-        """Set the hamiltonian.
+    def _set_HU(self):
+        """Set HU (the Hamiltonian times the unitary operator).
+        Note that HU is not Hermitian.
         """
-        #The Hamiltonian H is the time derivative of U.
-        self.H =(1.0j*self.hbar/self.dt)*(self.U - self.I)
+        #The Hamiltonian H is proportional to the
+        #time derivative of U times its inverse
+        self._HU =(1.0j*self.hbar/self.dt)*(self.U - np.conj(self.U.T))
 
     def Set_Energy_Eigenstates(self):
         """Set the eigenstates and energy eigenvalues.
         """
-        self.Set_Hamiltonian()
-        E, Eig = np.linalg.eig(self.H)
-        self.energy_eigenstates = Eig
-        self.energy_eigenvalues = E
+        self._set_HU()
+
+        eigvals, eigvects = np.linalg.eigh(self._HU)
+        eigvects = eigvects.T
+        eigvals = np.sign(np.real(eigvals))*np.abs(eigvals)
+
+        #np.linalg.eig may return degenerate eigenvectors, which is impossible
+        #in 1D QM. The quick remedy to this is to simply add these degenerate
+        #eigenstates into a single one. Actually, the eigenenergies may be
+        #different, just by a very small amount. 
+
+        tmp_dict = {}
+        for i in range(len(eigvals)):
+            E = np.round(eigvals[i], 6)
+            if E in tmp_dict:
+                tmp_dict[E] = np.add(eigvects[i], tmp_dict[E])
+            else:
+                tmp_dict[E] = eigvects[i]
+
+        eigvals, eigvects = tmp_dict.keys(), tmp_dict.values()
+        self.energy_eigenvalues = np.array(list(eigvals))
+        self.energy_eigenstates = np.array(list(eigvects), np.complex128).T

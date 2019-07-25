@@ -285,8 +285,9 @@ class Applet(QM_1D_Animation):
             "Potential Barrier": "10*rect(32*x)",
             "Potential Well": "-2*rect(4*x)",
             "Potential Well and Barrier":
-            "-2*rect(16*(x+0.25)) + 2*rect(16*(x-0.25))",
-            "Coulomb": "-1/(100*sqrt(x**2))",
+            "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
+            #"Coulomb": "-1/(100*sqrt(x**2))",
+            "Double Well":"1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4))",
             "Triangular Well": "sqrt(x**2)"
             }
         self.potential_menu_string = tk.StringVar(self.window)

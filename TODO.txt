@@ -1,11 +1,14 @@
+
+TO FIX:
+-For the scaling factor used for the scale function in animate.py,
+ make this independent of the units chosen.
+-Check that constants like 12 or 10 in the potential still work
 -Check spelling and grammar in the README file
 -Since hbar and mass are set to one, just don't show these.
--Degeneracy so far has been ignored. Account for this
- when enumerating the energy eigenstates
 -Optimize the Unitary_Operator_1D class
 -For the preset potentials, make them independent of the choice
-of the box's length and initial position.
--Revise the code for the locate_mouse method.
+ of the box's length and initial position.
+-Revise the code for the locate_mouse method of the Applet class.
 -Revise the code contained in the QM_1D_Animation class.
 -The previous_potential_menu_string attribute in the Applet class
  is most likely not used. Remove this attribute.
@@ -13,13 +16,9 @@ of the box's length and initial position.
  so that the terminal is not spammed with error messages
 -If the enter potential by entry fails in the Applet class, don't change the
  potential dropdown menu to its default string value.
--When reshaping the potential or wavefunction and the simulation is paused,
- different Tkinter event attributes are used corresponding to different
- versions of Tkinter. Check that these disparate event attributes
- produce the same behaviour.
 -Implement better code for the update_potential_by_sketch method
  in the Applet class
--When updating the unitary operator attribute in the
+-In the Applet class, when updating the unitary operator attribute in the
  update_potential_by_sketch method, use the Animation class methods
  to do this instead of directly manipulating unitary operator class.
 -When paused, remove the ability to measure position and
@@ -28,15 +27,15 @@ of the box's length and initial position.
  causes the sketches to appear on the far right side
  (this is likely due to the fact that negative indexes loop to the
  other side of the array).
--For powers, add support for ^ instead of **
 -Instead of showing '0' when there is no wavefunction, show 'no wavefunction'
- or something similar instead
+ or something similar
 -Make text labels independent of the choice of coordinates
 
-FUTURE FEATURES:
+TO ADD:
+-Implement this in GTK, QT, etc.
+-Show the expectation values of position and energy as viewable lines
 -Add a conversion back to metric units
 -Add some more preset potentials
--Add a scale to the potential
 -Add the ability to find the total probability of finding a particle
  in a certain region
 -Use the mouse wheel to cycle through the different energy eigenstates
@@ -47,6 +46,12 @@ FUTURE FEATURES:
 -Make the wavefunction viewable in momentum space
 -Think of some other basis to view the wavefunction in
 -Add time dependant potentials of the form V(x, t)
--Implement this in GTK, QT, etc.
 -Add periodic boundaries, if possible
 -Add non-reflecting boundaries, if possible
+
+POSSIBLE UNRESOLVABLE ISSUES:
+-For regions where the potentials have a large energy value,
+ if one draws a wavefunction here, the wavefunction will appear
+ to be stuck
+-For the infinite square well, the eigenenergies become very innacurate
+ for large energies. This is likely true for other potentials as well.

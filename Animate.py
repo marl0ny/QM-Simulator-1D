@@ -1,6 +1,6 @@
 from matplotlib.backends import backend_tkagg
 import matplotlib.animation as animation
-from sympy import symbols, lambdify, abc, latex, diff, integrate
+from sympy import symbols, lambdify, abc, latex
 from sympy.parsing.sympy_parser import parse_expr
 import numpy as np
 import matplotlib.pyplot as plt
@@ -10,6 +10,68 @@ from time import perf_counter
 np.seterr(all='raise')
 # Make numpy raise errors instead of warnings.
 
+def scale(x, scale_val):
+    """
+    Scale x back into a boundary if it exceeds it.
+
+    >>> scale(np.array([0,1,2,3,4,5]), 3)
+    array([0. , 0.6, 1.2, 1.8, 2.4, 3. ])
+
+    >>> scale(np.array([-10, 6, 3, 0, 1, 2]), 5)
+    array([-5. ,  3. ,  1.5,  0. ,  0.5,  1. ])
+    
+    """
+    absmaxposval = np.abs(np.amax(x))
+    absmaxnegval = np.abs(np.amin(x))
+    if (absmaxposval > scale_val or absmaxnegval > scale_val):
+        x = scale_val*x/absmaxposval \
+            if absmaxposval > absmaxnegval else \
+               scale_val*x/absmaxnegval
+    return x
+
+def rect(x):
+    """
+    Rectangle function.
+    """
+    try:
+        return np.array(
+            [
+                1.0 if (x_i < 0.5 and x_i > -0.5) else 0.
+                for x_i in x
+            ]
+            )
+    except:
+        return 1.0 if (x < 0.5 and x > -0.5) else 0.
+
+def delta(x):
+    """
+    Discrete approximation of the dirac delta function.
+    """
+    try:
+        dx = (x[-1] - x[0])/len(x)
+        return np.array([1e10 if (xi < (0. + dx/2) and xi > (0. - dx/2))
+                         else 0. for xi in x])
+    except:
+        return 1e10 if (x < 0.01 and x > -0.01) \
+               else 0.
+
+def coulomb(x):
+    """
+    1/r potential
+    """
+    pass
+    try:
+        dx = (x[-1] - x[0])/len(x)
+        return np.array([1e10 if (xi < (0. + dx/2) and xi > (0. - dx/2))
+                         else 0. for xi in x])
+    except:
+        return 1e10 if (x < 0.01 and x > -0.01) \
+               else 0.
+
+#Dictionary of modules and user defined functions.
+#Used for lambdify from sympy to parse input.
+module_list = ["numpy", {"rect":rect}]
+
 def convert_to_function(string, scale_by_k=False):
     """Using the sympy module, parse string input
     into a mathematical expression.
@@ -17,31 +79,18 @@ def convert_to_function(string, scale_by_k=False):
     the mathematical expression in terms of sympy symbols,
     and a lambdified function
     """
+    string = string.replace("^","**")
     symbolic_function = parse_expr(string)
     if scale_by_k:
         latexstring = latex(symbolic_function*abc.k)
     else:
         latexstring = latex(symbolic_function)
-    lambda_function = lambdify(abc.x, symbolic_function)
+    lambda_function = lambdify(abc.x, symbolic_function,
+                               modules=module_list)
     string = string.replace('*', '')
     latexstring="$" + latexstring + "$"
     return string, latexstring, \
            symbolic_function, lambda_function
-
-def rect(x):
-    """
-    Rectangle function.
-    """
-    return np.array([(1.0 if (xi < 0.5 and xi > -0.5) else 0.)
-                      for xi in x])
-
-def delta(x):
-    """
-    Discrete approximation of the dirac delta function.
-    """
-    dx = (x[-1] - x[0])/len(x)
-    return np.array([1e10 if (xi < (0. + dx/2) and xi > (0. - dx/2))
-                    else 0. for xi in x])
 
 def ordinate(number_string):
     """
@@ -205,21 +254,6 @@ class QM_1D_Animation(Constants):
             except (TypeError, AttributeError,
                     SyntaxError, ValueError, NameError) as E:
                 print(E)
-                try:
-                    x = self.x
-                    psi = eval(psi)
-                    if isinstance(psi, list):
-                        psi = np.array(psi, np.float64)
-                    elif (type(psi) in [float, int]):
-                        psi = psi*np.array([self.N])
-                    self.psi = Wavefunction_1D(psi)
-                    self.psi_name = "wavefunction"
-                    self.psi_latex = "$\psi(x)$"
-                    self.psi = Wavefunction_1D(psi)
-                    if (normalize):
-                        self.psi.normalize()
-                except Exception as E:
-                    print(str(E))
         elif isinstance(psi, np.ndarray):
             self.psi = Wavefunction_1D(psi)
             self.psi_name = "wavefunction"
@@ -227,7 +261,7 @@ class QM_1D_Animation(Constants):
             if (normalize):
                 self.psi.normalize()
         else:
-            raise Exception("Unable to parse input")
+            print("Unable to parse input")
 
     def set_unitary(self, V):
         """Parse input and
@@ -249,7 +283,7 @@ class QM_1D_Animation(Constants):
                         self.U_t = Unitary_Operator_1D(np.copy(V_f))
                         self.V_x = 0.0*V_f
                     else:
-                        V_f = float(V)*np.ones([self.N])
+                        V_f = scale(float(V)*np.ones([self.N]), 15)
                         self.V_x = V_f
                         self.U_t = Unitary_Operator_1D(np.copy(V_f))
                         self.V_latex = "%sk"%(self.V_latex) if V_f[0] > 0\
@@ -259,60 +293,67 @@ class QM_1D_Animation(Constants):
                             = convert_to_function(V, scale_by_k=True)
                     tmp = np.complex((V_f(2.)))
                     self.V = V_f
-                    self.V_x = V_f(self.x)
+                    self.V_x = scale(V_f(self.x), 15)
                     self.V_name = V_name
                     self.V_latex = V_latex
                     self.U_t = Unitary_Operator_1D(V_f)
             except (TypeError, AttributeError,
                     SyntaxError, ValueError, NameError) as E:
                 print(E)
-                try:
-                    x = self.x
-                    V = eval(V)
-                    if isinstance(V, list):
-                        self.V_x = np.array(V, np.float64)
-                    else:
-                        self.V_x = V
-                    self.V_f = None
-                    self.V_name = "V(x)"
-                    self.V_latex = "$V(x)$"
-                    self.U_t = Unitary_Operator_1D(np.copy(V))
-                except Exception as E:
-                    print(E)
         elif isinstance(V, np.ndarray):
             self.V = None
-            self.V_x = V
+            self.V_x = scale(V, 15)
             self.V_name = "V(x)"
             self.V_latex = "$V(x)$"
             self.U_t = Unitary_Operator_1D(V)
         else:
-            raise Exception("Unable to parse input")
+            print("Unable to parse input")
 
         if hasattr(self, "lines"):
-            if np.amax(self.V_x > 0):
-                self.lines[4].set_ydata(self.V_x/
-                    np.amax(self.V_x[1:-2])*self.bounds[-1]*0.95)
-            elif np.amax(self.V_x < 0):
-                self.lines[4].set_ydata(self.V_x/
-                    np.abs(np.amin(self.V_x[1:-2]))*self.bounds[-1]*0.95)
-            else:
-                self.lines[4].set_ydata(self.x*0.0)
-            #print(self.V_latex)
-            if (self.V_latex.replace(".","").isnumeric() and
-                (float(self.V_latex) == 0.)):
-                self.lines[5].set_text(
-                "$H = %s$, \n%s"%(self._KE_ltx, self._lmts_str))
-                self._main_msg = self.lines[5].get_text()
-            elif(self.V_latex[1] == "-"):
-                self.lines[5].set_text(
-                "$H = %s $%s, \n%s"%(self._KE_ltx,
-                self.V_latex, self._lmts_str))
-                self._main_msg = self.lines[5].get_text()
-            else:
-                self.lines[5].set_text(
-                "$H = %s + $%s, \n%s"%(self._KE_ltx,
-                self.V_latex, self._lmts_str))
-                self._main_msg = self.lines[5].get_text()
+            self.update_draw_potential()
+
+    def update_draw_potential(self):
+        """
+        Update the plot of the potential V(x)
+        """
+
+        #Update the actual plots
+        if np.amax(self.V_x > 0):
+            V_max = np.amax(self.V_x[1:-2])
+            self.lines[4].set_ydata(self.V_x/
+                                    V_max*self.bounds[-1]*0.95)
+            V_max *= self._scale
+            self.lines[8].set_text("V = %.0f"%(V_max))
+            self.lines[9].set_text("V = %.0f"%(-V_max))
+        elif np.amax(self.V_x < 0):
+            V_max = np.abs(np.amin(self.V_x[1:-2]))
+            self.lines[4].set_ydata(self.V_x/
+                                    V_max*self.bounds[-1]*0.95)
+            V_max *= self._scale
+            self.lines[8].set_text("V = %.0f"%(V_max))
+            self.lines[9].set_text("V = %.0f"%(-V_max))
+        else:
+            V_max = self.bounds[-1]*0.95*self._scale
+            self.lines[4].set_ydata(self.x*0.0)
+            self.lines[8].set_text("V = %.0f"%(V_max))
+            self.lines[9].set_text("V = %.0f"%(-V_max))
+
+        #Update the text display
+        if (self.V_latex.replace(".","").isnumeric() and
+            (float(self.V_latex) == 0.)):
+            self.lines[5].set_text(
+            "$H = %s$, \n%s"%(self._KE_ltx, self._lmts_str))
+            self._main_msg = self.lines[5].get_text()
+        elif(self.V_latex[1] == "-"):
+            self.lines[5].set_text(
+            "$H = %s $%s, \n%s"%(self._KE_ltx,
+            self.V_latex, self._lmts_str))
+            self._main_msg = self.lines[5].get_text()
+        else:
+            self.lines[5].set_text(
+            "$H = %s + $%s, \n%s"%(self._KE_ltx,
+            self.V_latex, self._lmts_str))
+            self._main_msg = self.lines[5].get_text()
 
     def display_probability(self, *args):
         """
@@ -368,7 +409,7 @@ class QM_1D_Animation(Constants):
             self._nE = 0
             ind = np.argsort(
                 np.real(self.U_t.energy_eigenvalues))
-            eigvects = np.copy(self.U_t.energy_eigenstates)
+            eigvects = np.copy(self.U_t.energy_eigenstates).T
             eigvals = np.copy(self.U_t.energy_eigenvalues)
             for i, j in enumerate(ind):
                 eigvals[i] = self.U_t.energy_eigenvalues[j]
@@ -387,7 +428,7 @@ class QM_1D_Animation(Constants):
 
     def  higher_energy_eigenstate(self, *args):
         """
-        Go to a lower energy eigenstate
+        Go to a higher energy eigenstate
         """
         #Copy and paste from the measure_energy method
         if not hasattr(self.U_t, "energy_eigenvalues"):
@@ -397,14 +438,15 @@ class QM_1D_Animation(Constants):
             self._nE = -1
             ind = np.argsort(
                 np.real(self.U_t.energy_eigenvalues))
-            eigvects = np.copy(self.U_t.energy_eigenstates)
+            eigvects = np.copy(self.U_t.energy_eigenstates).T
             eigvals = np.copy(self.U_t.energy_eigenvalues)
             for i, j in enumerate(ind):
                 eigvals[i] = self.U_t.energy_eigenvalues[j]
                 eigvects[i] = self.U_t.energy_eigenstates.T[j]
             self.U_t.energy_eigenvalues = eigvals
             self.U_t.energy_eigenstates = eigvects.T
-        self.U_t._nE += 1 if self.U_t._nE < self.N - 1 else 0
+        n_eigvals = len(self.U_t.energy_eigenvalues)
+        self.U_t._nE += 1 if self.U_t._nE < n_eigvals - 1 else 0
         n = self.U_t._nE
         E = np.real(self.U_t.energy_eigenvalues[n])
         self.psi.x = self.U_t.energy_eigenstates.T[n]
@@ -468,9 +510,9 @@ class QM_1D_Animation(Constants):
             #If also showing fps stats, change to 0.5
             #If showing both fps stats and stdevs change to 0.1
             self.lines[5].set_position((x, y*0.1))
-            
+
         self._show_exp_val = not self._show_exp_val
-        
+
 
     def _init_plots(self):
         """
@@ -550,7 +592,7 @@ class QM_1D_Animation(Constants):
         if np.amax(self.V_x > 0):
             line4, = self.ax.plot(self.x,
                                   (self.V_x/np.amax(self.V_x[1:-2]))*ymax*0.95,
-                                  color="gray",
+                                  color="darkslategray",
                                   linestyle='-',
                                   linewidth=0.5)
         elif np.amax(self.V_x < 0):
@@ -558,13 +600,13 @@ class QM_1D_Animation(Constants):
                                   (self.V_x/
                                    np.abs(np.amin(
                                    self.V_x[1:-2]))*0.95*self.bounds[-1]),
-                                  color="gray",
+                                  color="darkslategray",
                                   linestyle='-',
                                   linewidth=0.5)
         else:
             line4, = self.ax.plot(self.x,
                                   self.x*0.0,
-                                  color="gray",
+                                  color="darkslategray",
                                   linestyle='-',
                                   linewidth=0.5)
 
@@ -605,7 +647,7 @@ class QM_1D_Animation(Constants):
                              ymin + (ymax-ymin)*(0.1),
                              "—— V(x)",
                              alpha=1.,
-                             color="gray")
+                             color="darkslategray")
 
         # Show the infinite square well boundary
         self.ax.plot([self.x0, self.x0], [-10, 10],
@@ -634,35 +676,37 @@ class QM_1D_Animation(Constants):
         if np.amax(self.V_x > 0):
             V_max = np.amax(self.V_x[1:-2])
             V_scale = self.V_x/V_max*self.bounds[-1]*0.95
+            V_max *= self._scale
             self.lines[4].set_ydata(V_scale)
         elif np.amax(self.V_x < 0):
             V_max = np.abs(np.amin(self.V_x[1:-2]))
             V_scale = self.V_x/V_max*self.bounds[-1]*0.95
+            V_max *= self._scale
             self.lines[4].set_ydata(V_scale)
         else:
             self.lines[4].set_ydata(self.x*0.0)
 
         #Manually plot gird lines
-##        maxp = self.bounds[-1]*0.95
-##        self.ax.plot([self.x0, self.x0+self.L], [0., 0.],
-##                     color="gray", linewidth=0.5, linestyle = "--")
-##        self.ax.plot([self.x0, self.x0+self.L], [maxp, maxp],
-##                     color="gray", linewidth=0.5, linestyle = "--")
-##        self.ax.plot([self.x0, self.x0+self.L], [-maxp, -maxp],
-##                     color="gray", linewidth=0.5, linestyle = "--")
-##        #self.ax.plot([0, 0], [-self.bounds[-1], self.bounds[-1]],
-##        #             color="gray", linewidth=0.5, linestyle = "--")
-##
-##        #Show where the potential is zero
-##        self.ax.text(xmax*0.8, 0.03, "V = 0", color="black", fontdict={'size':8})
-##        self.lines.append(self.ax.text
-##                          (xmax*0.8, maxp,
-##                           "V = %s.0f"%(V_max),
-##                           color="black", fontdict={'size':8}))
-##        self.lines.append(self.ax.text
-##                          (xmax*0.8, -maxp,
-##                           "V = %s.0f"%(-V_max),
-##                           color="black", fontdict={'size':8}))
+        maxp = self.bounds[-1]*0.95
+        self.ax.plot([self.x0, self.x0+self.L], [0., 0.],
+                     color="gray", linewidth=0.5, linestyle = "--")
+        self.ax.plot([self.x0, self.x0+self.L], [maxp, maxp],
+                     color="gray", linewidth=0.5, linestyle = "--")
+        self.ax.plot([self.x0, self.x0+self.L], [-maxp, -maxp],
+                     color="gray", linewidth=0.5, linestyle = "--")
+        #self.ax.plot([0, 0], [-self.bounds[-1], self.bounds[-1]],
+        #             color="gray", linewidth=0.5, linestyle = "--")
+
+        #Show where the potential is zero
+        self.ax.text(xmax*0.8, 0.03, "V = 0", color="gray", fontdict={'size':8})
+        self.lines.append(self.ax.text
+                          (xmax*0.7, maxp*0.92,
+                           "V = %.0f"%(V_max),
+                           color="gray", fontdict={'size':8}))
+        self.lines.append(self.ax.text
+                          (xmax*0.68, -maxp*0.96,
+                           "V = %.0f"%(-V_max),
+                           color="gray", fontdict={'size':8}))
 
         self._main_msg = self.lines[5].get_text()
 
@@ -744,7 +788,7 @@ class QM_1D_Animation(Constants):
                     E_sigma
                     )
                 )
-            
+
 ##        elif (self._show_exp_val and self._msg_i < 0):
 ##            if not hasattr(self.U_t, "energy_eigenvalues"):
 ##                self.U_t.Set_Energy_Eigenstates()
@@ -758,7 +802,7 @@ class QM_1D_Animation(Constants):
 ##                    )
 ##                )
 
-            
+
 ##            t0, tf = self.t_perf
 ##            self.lines[5].set_text(
 ##                "%s%s%s%s%s"%(
