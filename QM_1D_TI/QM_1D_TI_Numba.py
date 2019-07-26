@@ -80,9 +80,9 @@ def _construct_U(V, m, hbar, N, dx, dt):
     return np.dot(invA, B)
 
 
-@jit('Tuple((c16[:], c16[:,:]))(c16[:,:])', cache=True, nogil=True, nopython=True)
+@jit('Tuple((f8[:], c16[:,:]))(c16[:,:])', cache=True, nogil=True, nopython=True)
 def _get_eig(H):
-    return np.linalg.eig(H)
+    return np.linalg.eigh(H)
 
 @jit('c16[:,:](c16, c16[:,:], c16[:,:])', parallel=True, nogil=True, nopython=True)
 def _mat_diff(s, A, B):
@@ -402,8 +402,9 @@ class Unitary_Operator_1D(Constants):
         hbar = np.dtype(np.complex128)
         dt = np.dtype(np.complex128)
         ihbar = 1.0j*self.hbar
-        dt = self.dt
+        dt = 2*self.dt
         self._HU = _mat_diff((ihbar/dt), self.U, np.conj(self.U.T))
+        #self._HU = _mat_diff((ihbar/dt), self.U, self.I)
 
 
     def Set_Energy_Eigenstates(self):
@@ -417,11 +418,6 @@ class Unitary_Operator_1D(Constants):
         eigvals, eigvects = _get_eig(self._HU)
         eigvects = eigvects.T
         eigvals = np.sign(np.real(eigvals))*np.abs(eigvals)
-
-        #np.linalg.eig may return degenerate eigenvectors, which is impossible
-        #in 1D QM. The quick remedy to this is to simply add these degenerate
-        #eigenstates into a single one. Actually, the eigenenergies may be
-        #different, just by a very small amount. 
 
         tmp_dict = {}
         for i in range(len(eigvals)):

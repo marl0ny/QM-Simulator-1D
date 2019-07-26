@@ -282,7 +282,7 @@ class Applet(QM_1D_Animation):
         self.potential_menu_dict = {
             "Infinite Square Well": "0",
             "Simple Harmonic Oscillator": "x**2/2",
-            "Potential Barrier": "10*rect(32*x)",
+            #"Potential Barrier": "10*rect(32*x)",
             "Potential Well": "-2*rect(4*x)",
             "Potential Well and Barrier":
             "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
@@ -376,7 +376,10 @@ class Applet(QM_1D_Animation):
         self.menu.add_command(label="Toggle Expectation Values",
                               command=self.toggle_expectation_values)
         self.menu.insert_separator(7)
-        self.menu.add_command(label="Quit", command=self.quit)
+        self.menu.add_command(label="Higher Stationary State",
+                              command=self.higher_energy_eigenstate)
+        self.menu.add_command(label="Lower Stationary State",
+                              command=self.lower_energy_eigenstate)
         self.window.bind("<ButtonRelease-3>", self.popup_menu)
 
 

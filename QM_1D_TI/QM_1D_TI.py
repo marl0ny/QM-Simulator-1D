@@ -325,8 +325,9 @@ class Unitary_Operator_1D(Constants):
         """
         #The Hamiltonian H is proportional to the
         #time derivative of U times its inverse
-        self._HU =(1.0j*self.hbar/self.dt)*(self.U - np.conj(self.U.T))
-
+        self._HU =(0.5*1.0j*self.hbar/self.dt)*(self.U - np.conj(self.U.T))
+        #self._HU =(1.0j*self.hbar/self.dt)*(self.U - self.I)
+        
     def Set_Energy_Eigenstates(self):
         """Set the eigenstates and energy eigenvalues.
         """
@@ -335,11 +336,6 @@ class Unitary_Operator_1D(Constants):
         eigvals, eigvects = np.linalg.eigh(self._HU)
         eigvects = eigvects.T
         eigvals = np.sign(np.real(eigvals))*np.abs(eigvals)
-
-        #np.linalg.eig may return degenerate eigenvectors, which is impossible
-        #in 1D QM. The quick remedy to this is to simply add these degenerate
-        #eigenstates into a single one. Actually, the eigenenergies may be
-        #different, just by a very small amount. 
 
         tmp_dict = {}
         for i in range(len(eigvals)):

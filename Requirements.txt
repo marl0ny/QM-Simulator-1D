@@ -3,4 +3,8 @@
 numpy >= 1.14.2
 sympy >= 1.1.1
 matplotlib >= 2.2.2
-tkinter >= 8.6
+#tkinter >= 8.6
+
+#The following is actually 
+#optional:
+numba >= 0.45.0
