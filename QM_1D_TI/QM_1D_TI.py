@@ -299,7 +299,8 @@ class Unitary_Operator_1D(Constants):
                     B[l][i] = b2
 
         #Obtain U
-        self.U = np.matmul(np.linalg.inv(A), B)
+        self.U = np.dot(np.linalg.inv(A), B)
+        #self.U = np.matmul(np.linalg.inv(A), B)
 
         #The identity operator is what the unitary matrix
         #reduces to at time zero. Also,
@@ -318,6 +319,7 @@ class Unitary_Operator_1D(Constants):
         """
 
         wavefunction.x = np.matmul(self.U, wavefunction.x)
+        #wavefunction.x = np.dot(self.U, wavefunction.x)
 
     def _set_HU(self):
         """Set HU (the Hamiltonian times the unitary operator).
