@@ -543,8 +543,8 @@ class Applet(QM_1D_Animation):
         #This code block is run right after the mouse has been held down
         elif (str(event.type) == "ButtonRelease" or event.num == 1) \
              and (self.fpi_before_pause != None):
-            self.V_x = change_array(
-                self.x, self.V_x, x, y)
+            #self.V_x = change_array(
+            #    self.x, self.V_x, x, y)
             self.U_t = Unitary_Operator_1D(np.copy(self.V_x))
             self.potential_menu_string.set("Choose Preset Potential V(x)")
             self.previous_potential_menu_string = "Choose Preset Potential V(x)"
