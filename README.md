@@ -29,7 +29,7 @@ To get a plain Matplotlib animation without any GUI, either directly run `animat
 
 The actual physics are contained in the classes `Wavefunction1D` and `UnitaryOperator1D`, which encapsulate the wavefunction and unitary operator. These are in the module `qm`.
 
-For more content like this, have a look at the interactive quantum simulations written by [Daniel Schroeder](http://physics.weber.edu/schroeder/), [Paul Falstad](http://www.falstad.com/qm1d/), and [PhET Colorado](https://phet.colorado.edu/en/simulation/legacy/bound-states). It were these simulations that inspired me to write my own in Python. Then have a look into the quantum mechanics module [QuTiP](http://qutip.org/), for a less GUI-based but more technical and in depth exploration of quantum mechanics. You may also want to try exercise 9.8 in the previously mentioned Computational Physics book by Mark Newman, as well as the other questions in this chapter.
+For more content like this, have a look at the interactive quantum simulations written by [Daniel Schroeder](http://physics.weber.edu/schroeder/software/), [Paul Falstad](http://www.falstad.com/qm1d/), and [PhET Colorado](https://phet.colorado.edu/en/simulation/legacy/bound-states). It were these simulations that inspired me to write my own in Python. Then have a look into the quantum mechanics module [QuTiP](http://qutip.org/), for a less GUI-based but more technical and in depth exploration of quantum mechanics. You may also want to try exercise 9.8 in the previously mentioned Computational Physics book by Mark Newman, as well as the other questions in this chapter.
 
 ## References
 
