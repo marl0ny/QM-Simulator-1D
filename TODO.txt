@@ -1,25 +1,31 @@
 
 TO FIX:
+-Reshaping the probabilty distribution instead of the wavefunction
+ completely destroys phase information. Change this so that phase
+ is preserved.
+-The numpy array input for the UnitaryOperator1D and the Wavefunction1D
+ can have lengths that differ from the N constant set in the Constants class.
+ There are currently no checks on this.
 -For the scaling factor used for the scale function in animate.py,
  make this independent of the units chosen.
 -Check that constants like 12 or 10 in the potential still work
 -Check spelling and grammar in the README file
 -Since hbar and mass are set to one, just don't show these.
--Optimize the Unitary_Operator_1D class
+-Optimize the UnitaryOperator1D class
 -For the preset potentials, make them independent of the choice
  of the box's length and initial position.
--Revise the code for the locate_mouse method of the Applet class.
--Revise the code contained in the QM_1D_Animation class.
--The previous_potential_menu_string attribute in the Applet class
+-Revise the code for the locate_mouse method of the App class.
+-Revise the code contained in the QuantumAnimation class.
+-The previous_potential_menu_string attribute in the App class
  is most likely not used. Remove this attribute.
 -Put an option in the code of whether to output errors or not
  so that the terminal is not spammed with error messages
--If the enter potential by entry fails in the Applet class, don't change the
+-If the enter potential by entry fails in the App class, don't change the
  potential dropdown menu to its default string value.
 -Implement better code for the update_potential_by_sketch method
- in the Applet class
--In the Applet class, when updating the unitary operator attribute in the
- update_potential_by_sketch method, use the Animation class methods
+ in the App class
+-In the App class, when updating the unitary operator attribute in the
+ update_potential_by_sketch method, use the QuantumAnimation class methods
  to do this instead of directly manipulating unitary operator class.
 -When paused, remove the ability to measure position and
  then measure momentum and vice versa.
@@ -42,7 +48,6 @@ TO ADD:
 -Use the mouse to construct different functions such as a sinc or gaussian
 -Think of other things to do with mouse input
 -Make it possible to change the mass of the particle and other constants
--Make a visualization of the energy levels of the potential
 -Make the wavefunction viewable in momentum space
 -Think of some other basis to view the wavefunction in
 -Add time dependant potentials of the form V(x, t)
