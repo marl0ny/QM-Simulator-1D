@@ -54,7 +54,7 @@ class App(QuantumAnimation):
     """
 
     # For those methods that pause the time evolution
-    # while recieving mouse input, the fpi_before_pause
+    # while receiving mouse input, the fpi_before_pause
     # attribute records the number of time evolutions
     # per animation frame or fpi right before the pause.
     # This is then used to set the fpi to its original state
@@ -86,7 +86,7 @@ class App(QuantumAnimation):
         self.window = tk.Tk()
         self.window.title("Bounded Wavefunction in 1D")
 
-        # Thanks to stackoverflow user rudivonstaden for
+        # Thanks to StackOverflow user rudivonstaden for
         # giving a way to get the colour of the tkinter widgets:
         # https://stackoverflow.com/questions/11340765/
         # default-window-colour-tkinter-and-hex-colour-codes
@@ -152,7 +152,7 @@ class App(QuantumAnimation):
                 "<ButtonRelease-1>",
                 self.sketch)
 
-        # Thanks to stackoverflow user user1764386 for
+        # Thanks to StackOverflow user user1764386 for
         # giving a way to change the background colour of a plot.
         #
         #    https://stackoverflow.com/q/14088687
@@ -292,7 +292,7 @@ class App(QuantumAnimation):
                                  padx=(11, 11)
                                  )
 
-        # Update wavefunction buttion
+        # Update wavefunction button
         b2 = tk.Button(self.window, text='OK',
                        command=self.update_wavefunction_by_name)
         self.update_wavefunction_button = b2
@@ -366,7 +366,7 @@ class App(QuantumAnimation):
             padx=(10, 10)
             )
 
-        # Update potential buttion
+        # Update potential button
         b4 = tk.Button(self.window,
                        text='OK',
                        command=self.update_potential_by_name)
@@ -516,7 +516,7 @@ class App(QuantumAnimation):
         can still run if the wavefunction is changed.
         """
         x, y = self.locate_mouse(event)
-        if (self._display_probs):
+        if self._display_probs:
             psi2_new = change_array(
                 self.x, self.psi.x*np.conj(self.psi.x)/3, x, y)
             self.set_wavefunction(np.sqrt(3*psi2_new),
@@ -567,7 +567,7 @@ class App(QuantumAnimation):
             self.fpi_before_pause = None
 
         # Update the wavefunction
-        if (self._display_probs):
+        if self._display_probs:
             psi2_new = change_array(
                 self.x, self.psi.x*np.conj(self.psi.x)/3, x, y)
             self.set_wavefunction(np.sqrt(3*psi2_new),
@@ -720,64 +720,16 @@ class App(QuantumAnimation):
         Locate the position of the mouse with respect to the
         coordinates displayed on the plot axes.
         """
-
-        # Get the dimensions of the plot
-        # in terms of x and y
-        xmin, xmax, ymin, ymax = self.bounds
-
-        # Get the x and y ranges.
-        xrange = xmax - xmin
-        yrange = ymax - ymin
-
-        # Switch to "canvas coordinates". These are the locations of
-        # event.x and event.y in terms of pixels with respect to the origin at
-        # the bottom left corner of the canvas.
-        x_canvas = event.x
-        y_canvas = self.canvas.get_tk_widget().winfo_height() - event.y
-
-        # These are the canvas coordinate locations of
-        # where the axes begin (pxi, pyi), their intersection (px0, py0),
-        # and where they end (pxf, pyf). In order to find these, uncomment
-        # the print statements right before this function's return statement
-        # and see what they output when clicking on the canvas.
-        # Please note, these values are dependant on the values of L and x0
-        # in the inherited Constants class.
-        if (self._dpi == 100):
-            pxi, pxf = 78, 576
-            pyi, pyf = 53, 422
-            px0, py0 = 328, 238
-        elif (self._dpi == 120):
-            pxi, pxf = 98, 692
-            pyi, pyf = 62, 506
-            px0, py0 = 395, 283
-        elif (self._dpi == 150):
-            pxi, pxf = 121, 865
-            pyi, pyf = 78, 632
-            px0, py0 = 493, 355
-
-        # Range of each axis in terms of pixels.
-        pxrange = pxf - pxi
-        pyrange = pyf - pyi
-
-        # Transfer to "pixel plot coordinates".
-        # In order to go from canvas to pixel plot coordinates,
-        # the origin is shifted from the bottom left corner
-        # of the canvas to the instersection of the plot axes.
-        x_pxl_plot = x_canvas - px0
-        y_pxl_plot = y_canvas - py0
-
-        # Transfer from these pixel plot coordinates
-        # into the x and y coordinates displayed by the plot axes.
-        x = x_pxl_plot*(xrange/pxrange)
-        y = y_pxl_plot*(yrange/pyrange)
-
-        # Use the following to find the canvas coordinate
-        # locations of where the axes intersect and where they end:
-        # self.ax.grid()
-        # print ("x: %d, y: %d"%(x_canvas, y_canvas))
-        # print (self.bounds)
-        # print(x, y)
-
+        ax = self.figure.get_axes()[0]
+        xlim = ax.get_xlim()
+        ylim = ax.get_ylim()
+        pixel_xlim = [ax.bbox.xmin, ax.bbox.xmax]
+        pixel_ylim = [ax.bbox.ymin, ax.bbox.ymax]
+        height = self.canvas.get_tk_widget().winfo_height()
+        mx = (xlim[1] - xlim[0])/(pixel_xlim[1] - pixel_xlim[0])
+        my = (ylim[1] - ylim[0])/(pixel_ylim[1] - pixel_ylim[0])
+        x = (event.x - pixel_xlim[0])*mx + xlim[0]
+        y = (height - event.y - pixel_ylim[0])*my + ylim[0]
         return x, y
 
     def quit(self, *event: tk.Event) -> None:
