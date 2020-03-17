@@ -7,11 +7,21 @@ from numba.types import Tuple
 from .constants import Constants
 # from time import perf_counter
 
+# Global variables
+# TODO: Don't do this.
+A = np.zeros((512, 512), np.complex128)
+B = np.zeros((512, 512), np.complex128)
+# _HU = np.zeros((512, 512), np.complex128)
+
 
 @jit('c16[:](c16[:,:], c16[:])', parallel=True, nogil=True, nopython=True)
 def _time_evolve_wavefunction(U, psix):
-    psix = np.dot(U, psix)
-    return psix
+    return np.dot(U, psix)
+
+
+@jit('c16[:,:](c16[:,:], c16[:,:])', nogil=True, nopython=True)
+def _mat_mult(M1, M2):
+    return np.dot(M1, M2)
 
 
 @jit('void(i8, c16, c16, c16[:], c16[:,:], c16[:,:])',
@@ -25,21 +35,15 @@ def _fill_AB(N, K, J, V, A, B):
     b1 = 1 - 2*K
     b2 = K
 
-    # Construct the A and B matrices
-    for i in prange(N):
-        for l_ in prange(N):
-            if (i == l_):
-
-                A[i][l_] = a1 + J*V[i]
-                B[i][l_] = b1 - J*V[i]
-
-            elif (l_ == (i + 1)):
-
-                A[i][l_] = a2
-                A[l_][i] = a2
-
-                B[i][l_] = b2
-                B[l_][i] = b2
+    for i in prange(N-1):
+        A[i][i] = a1 + J*V[i]
+        B[i][i] = b1 - J*V[i]
+        A[i][i+1] = a2
+        A[i+1][i] = a2
+        B[i][i+1] = b2
+        B[i+1][i] = b2
+    A[N-1][N-1] = a1 + J*V[N-1]
+    B[N-1][N-1] = b1 - J*V[N-1]
 
 
 # @jit('c16[:,:](c16[:], f8, f8, i8, f8, f8)',
@@ -47,8 +51,8 @@ def _fill_AB(N, K, J, V, A, B):
 def _construct_U(V, m, hbar, N, dx, dt):
 
     # Initialize A and B matrices
-    A = np.zeros((N, N), np.complex128)
-    B = np.zeros((N, N), np.complex128)
+    # A = np.zeros((N, N), np.complex128)
+    # B = np.zeros((N, N), np.complex128)
 
     # \Delta t \frac{i \hbar}{2m \Delta x^2}
     K = (dt*1.0j*hbar)/(4*m*dx**2)
@@ -60,6 +64,7 @@ def _construct_U(V, m, hbar, N, dx, dt):
 
     invA = np.linalg.inv(A)
     return np.dot(invA, B)
+    # return _mat_mult(invA, B)
 
 
 @jit('Tuple((f8[:], c16[:,:]))(c16[:,:])',
@@ -111,14 +116,13 @@ class Wavefunction1D(Constants):
                 len(self.x)
             except TypeError as E:
                 print(E)
-                return np.array(
-                    [float(self.x) for _ in self.N])
+                return
 
-            self.x = self.x.astype(np.complex128, order="F")
+            self.x = np.ascontiguousarray(self.x, np.complex128)
 
         elif isinstance(waveform, np.ndarray):
             self.x = waveform
-            self.x = self.x.astype(np.complex128, order="F")
+            self.x = np.ascontiguousarray(self.x, np.complex128)
 
     def normalize(self):
         """Normalize the wavefunction
@@ -127,10 +131,17 @@ class Wavefunction1D(Constants):
         try:
             self.x = self.x/np.sqrt(
                 np.trapz(np.conj(self.x)*self.x, dx=self.dx))
-            self.x = self.x.astype(np.complex128)
+            self.x = np.ascontiguousarray(self.x, np.complex128)
             # self.x = np.array(self.x, np.complex128)
         except FloatingPointError as E:
             print(E)
+
+    @property
+    def p(self):
+        """
+        The wavefunction in the momentum basis.
+        """
+        return np.fft.fftshift(np.fft.fft(self.x)/(self.N/10))
 
     def expectation_value(self, eigenvalues, eigenstates):
         """Find the expectation value of the wavefunction
@@ -311,17 +322,12 @@ class UnitaryOperator1D(Constants):
         # t1 = perf_counter()
 
         self.U = _construct_U(V, m, hbar, N, dx, dt)
-        self.U = self.U.astype(np.complex128, order="F")
+        self.U = np.ascontiguousarray(self.U, np.complex128)
+
+        # self._HU = _HU
 
         # t2 = perf_counter()
         # print(t2 - t1)
-
-        # The identity operator is what the unitary matrix
-        # reduces to at time zero. Also,
-        # since the wavefunction and all operators are
-        # in the position basis, the identity matrix
-        # is the position operator.
-        self.id = np.identity(N, np.complex128)
 
         # Get the Hamiltonian from the unitary operator
         # and aquire the energy eigenstates.
@@ -331,8 +337,8 @@ class UnitaryOperator1D(Constants):
         """Call this class
         on a wavefunction to time evolve it.
         """
-        # wavefunction.x = np.matmul(self.U, wavefunction.x)
         wavefunction.x = _time_evolve_wavefunction(self.U, wavefunction.x)
+        # np.copyto(wavefunction.x, _time_evolve_wavefunction(self.U, wavefunction.x))
 
     def _set_HU(self):
         """Set HU (the Hamiltonian times the unitary operator).
@@ -342,9 +348,11 @@ class UnitaryOperator1D(Constants):
         # time derivative of U times its inverse
 
         # hbar = np.dtype(np.complex128)
+        # self._HU = np.zeros([self.N, self.N], np.complex128)
         dt = np.dtype(np.complex128)
         ihbar = 1.0j*self.hbar
         dt = 2*self.dt
+        # np.copyto(self._HU, _mat_diff((ihbar/dt), self.U, np.conj(self.U.T)))
         self._HU = _mat_diff((ihbar/dt), self.U, np.conj(self.U.T))
         # self._HU = _mat_diff((ihbar/dt), self.U, self.I)
 

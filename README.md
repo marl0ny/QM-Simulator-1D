@@ -2,11 +2,11 @@
 
 # Interactive Quantum Mechanics Using Matplotlib and Tkinter 
 
-This program simulates a single quantum particle inside a bounded, reshapable 1D potential. The dynamics of this quantum particle are given by
+This program simulates a single quantum particle inside a bounded, shapeable 1D potential. The dynamics of this quantum particle are given by
 |&psi;(t)> = U(t)|&psi;(0)>,
-where t is time, |&psi;> is the wavefunction vector ket of the particle, and U(t) is the unitary time evolution matrix. Numerical solutions to this equation may be found using the Crank-Nicolson method. This method is derived in [Exercise 9.8 of Mark Newmann's Computational Physics](http://www-personal.umich.edu/~mejn/cp/exercises.html) for the free particle case.
+where t is time, |&psi;> is the wavefunction vector ket of the particle, and U(t) is the unitary time evolution matrix. Numerical solutions to this equation may be found using the Crank-Nicolson method, which is derived in [Exercise 9.8 of Mark Newmann's Computational Physics](http://www-personal.umich.edu/~mejn/cp/exercises.html) for the free particle case.
 
-This project is indebted to the following modules: Numpy for numerical calculations, Sympy for symbolic computations, Matplotlib for graphing, and Tkinter for the GUI.
+This project would not be possible without the following libraries: Numpy for numerical calculations, Sympy for symbolic computations, Matplotlib for graphing, and Tkinter for the GUI.
 
 ## Instructions:
 
@@ -19,7 +19,7 @@ Obtain all the necessary code by cloning this repository or downloading it, then
 
 The graph displays the wavefunction &psi;(x) and the potential V(x). The top left corner displays a legend showing the Hamiltonian H of the system  and its x-axis boundaries, which extend from -0.5 to 0.5. Note that the units on the x-axis and all other units of measurement are not in metric units, but in [natural units](https://en.wikipedia.org/wiki/Natural_units), where all fundamental constants are set to one.
 
-Use the mouse to draw a new shape for both the wavefunction &psi;(x) and potential V(x). To switch between reshaping the wavefunction or the potential, right click and select either `Reshape Potential V(x)` or `Reshape Wavefunction`.
+Use the mouse to draw a new shape for either the wavefunction &psi;(x) or the potential V(x). To switch between reshaping the wavefunction or the potential, right click and select either `Reshape Potential V(x)` or `Reshape Wavefunction`.
 
 <img src="https://raw.githubusercontent.com/marl0ny/QM-Simulator-1D/master/images/demo_3.gif" />
 
@@ -29,7 +29,7 @@ To get a plain Matplotlib animation without any GUI, either directly run `animat
 
 The actual physics are contained in the classes `Wavefunction1D` and `UnitaryOperator1D`, which encapsulate the wavefunction and unitary operator. These are in the module `qm`.
 
-For more content like this, have a look at the interactive quantum simulations written by [Daniel Schroeder](http://physics.weber.edu/schroeder/software/), [Paul Falstad](http://www.falstad.com/qm1d/), and [PhET Colorado](https://phet.colorado.edu/en/simulation/legacy/bound-states). It were these simulations that inspired me to write my own in Python. Then have a look into the quantum mechanics module [QuTiP](http://qutip.org/), for a less GUI-based but more technical and in depth exploration of quantum mechanics. You may also want to try exercise 9.8 in the previously mentioned Computational Physics book by Mark Newman, as well as the other questions in this chapter.
+For more content like this, have a look at the interactive quantum simulations written by [Daniel Schroeder](http://physics.weber.edu/schroeder/), [Paul Falstad](http://www.falstad.com/qm1d/), and [PhET Colorado](https://phet.colorado.edu/en/simulation/legacy/bound-states). It were these simulations that inspired me to write my own in Python. Then have a look into the quantum mechanics module [QuTiP](http://qutip.org/), for a less GUI-based but more technical and in depth exploration of quantum mechanics. You may also want to try exercise 9.8 in the previously mentioned Computational Physics book by Mark Newman, as well as the other questions in this chapter.
 
 ## References
 

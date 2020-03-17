@@ -101,24 +101,29 @@ class QuantumAnimation(Constants):
         self._msg = ""  # Temporary messages in the text
         # box in the upper left corner
         self._main_msg = ""  # Primary messages in this same text box.
+        self._main_msg_store = "" # Store the primary message
         self.psi_name = ""  # Name of the wavefunction
         self.psi_latex = ""  # LaTEX name of the wavefunction
         self.V_name = ""   # Name of the potential
         self.V_latex = ""  # LaTEX name of the potential
+        self.identity_matrix = np.identity(self.N, np.complex128)
 
         # Ticking int attributes
         self.fpi = 1    # Set the number of time evolutions per animation frame
         self._t = 0     # Time that has passed
-        self._msg_i = 0  # Message counter for displayng temporary messages
+        self._msg_i = 0  # Message counter for displaying temporary messages
         self.fps = 30    # frames per second
         self.fps_total = 0  # Total number of fps
         self.avg_fps = 0  # Average fps
         self.ticks = 0    # total number of ticks
 
+        # The x-axis x ticks
+        self._x_ticks = []
+
         self.t_perf = [1.0, 0.]
 
         # Set the dpi (Resolution in plt.figure())
-        self._dpi = 150
+        self._dpi = 120
 
         # Boolean Attributes
         # Display the probability function or not
@@ -126,6 +131,9 @@ class QuantumAnimation(Constants):
 
         # Scale y value
         self._scale_y = 1.0
+
+        # Whether to show momentum p or to show position x
+        self._show_p = False
 
         # Whether to show energy level or not.
         self._show_energy_levels = False
@@ -154,7 +162,7 @@ class QuantumAnimation(Constants):
         #       -Add helper functions that are common to
         #        set_wavefunction and set_unitary
         #       -Think of all possible inputs
-        #        and sanitization methods
+        #        and sanitation methods
 
         if isinstance(psi, str):
             try:
@@ -162,9 +170,9 @@ class QuantumAnimation(Constants):
                         "e", "").isnumeric():
                     psi_x = float(psi)*np.ones([self.N])
                     self.psi_name = psi
-                    self.psi_latex = "$%s$" % (psi)
+                    self.psi_latex = "$%s$" % psi
                     self.psi = Wavefunction1D(psi_x)
-                    self._msg = "$\psi(x, 0) =$ %s" % (self.psi_latex)
+                    self._msg = "$\psi(x, 0) =$ %s" % self.psi_latex
                     self._msg_i = 45
                     if normalize:
                         self.psi.normalize()
@@ -175,7 +183,7 @@ class QuantumAnimation(Constants):
                     self.psi_name = psi_name
                     self.psi_latex = psi_latex
                     self.psi = Wavefunction1D(psi_f)
-                    self._msg = "$\psi(x, 0) =$ %s" % (self.psi_latex)
+                    self._msg = "$\psi(x, 0) =$ %s" % self.psi_latex
                     self._msg_i = 45
                     if normalize:
                         self.psi.normalize()
@@ -251,46 +259,47 @@ class QuantumAnimation(Constants):
             self.lines[4].set_ydata(self.V_x/
                                     V_max*self.bounds[-1]*0.95)
             V_max *= self._scale
-            self.lines[8].set_text("E = %.0f" % (V_max))
-            self.lines[9].set_text("E = %.0f" % (-V_max))
+            self.lines[9].set_text("E = %.0f" % (V_max))
+            self.lines[10].set_text("E = %.0f" % (-V_max))
         elif np.amax(self.V_x < 0):
             V_max = np.abs(np.amin(self.V_x[1:-2]))
             self.lines[4].set_ydata(self.V_x/
                                     V_max*self.bounds[-1]*0.95)
             V_max *= self._scale
-            self.lines[8].set_text("E = %.0f" % (V_max))
-            self.lines[9].set_text("E = %.0f" % (-V_max))
+            self.lines[9].set_text("E = %.0f" % (V_max))
+            self.lines[10].set_text("E = %.0f" % (-V_max))
         else:
             V_max = self.bounds[-1]*0.95*self._scale
             self.lines[4].set_ydata(self.x*0.0)
-            self.lines[8].set_text("E = %.0f" % (V_max))
-            self.lines[9].set_text("E = %.0f" % (-V_max))
+            self.lines[9].set_text("E = %.0f" % (V_max))
+            self.lines[10].set_text("E = %.0f" % (-V_max))
 
         # Update the text display
         if (self.V_latex.replace(".", "").isnumeric() and
                 (float(self.V_latex) == 0.)):
-            self.lines[5].set_text("$H = %s$, \n%s" % (
+            self.set_main_message("$H = %s$, \n%s" % (
                     self._KE_ltx, self._lmts_str))
-            self._main_msg = self.lines[5].get_text()
         elif self.V_latex[1] == "-":
-            self.lines[5].set_text(
-                "$H = %s $%s, \n%s"%(self._KE_ltx, self.V_latex, 
-                                     self._lmts_str))
-            self._main_msg = self.lines[5].get_text()
+            self.set_main_message("$H = %s $%s, \n%s"%(
+                self._KE_ltx, self.V_latex, self._lmts_str)
+            )
         else:
-            self.lines[5].set_text("$H = %s + $%s, \n%s" % (
+            self.set_main_message("$H = %s + $%s, \n%s" % (
                     self._KE_ltx, self.V_latex, self._lmts_str))
-            self._main_msg = self.lines[5].get_text()
 
     def display_probability(self, *args):
         """
-        Show only the probability density |\psi(x)|^2.
+        Show only the probability density |\psi(x)|^2
+        (or |\psi(p)|^2).
         """
         self._display_probs = True
         self.lines[1].set_linewidth(1.25)
         self.lines[2].set_alpha(0.)
         self.lines[3].set_alpha(0.)
-        self.lines[0].set_text("—— $|\psi(x)|^2$")
+        if self._show_p:
+            self.lines[0].set_text("—— $|\psi(p)|^2$")
+        else:
+            self.lines[0].set_text("—— $|\psi(x)|^2$")
         self.lines[6].set_alpha(0.)
         self.lines[7].set_alpha(0.)
 
@@ -303,10 +312,90 @@ class QuantumAnimation(Constants):
         self.lines[1].set_linewidth(0.75)
         self.lines[2].set_alpha(1.)
         self.lines[3].set_alpha(1.)
-        self.lines[0].set_text("—— $|\psi(x)|$")
-        #self.lines[0].set_text("—— |Ψ(x)|")
+        if self._show_p:
+            self.lines[0].set_text("—— $|\psi(p)|$")
+        else:
+            self.lines[0].set_text("—— $|\psi(x)|$")
+        # self.lines[0].set_text("—— |Ψ(x)|")
         self.lines[6].set_alpha(1.)
         self.lines[7].set_alpha(1.)
+
+    def display_momentum(self, *args):
+        """
+        Show the wavefunction in the momentum basis.
+        """
+        self._show_p = True
+        psi_text0 = self.lines[0].get_text().replace("x", "p")
+        psi_text6 = self.lines[6].get_text().replace("x", "p")
+        psi_text7 = self.lines[6].get_text().replace("x", "p")
+        self.lines[0].set_text(psi_text0)
+        self.lines[6].set_text(psi_text6)
+        self.lines[7].set_text(psi_text7)
+        # freq = np.fft.fftshift(np.fft.fftfreq(len(self.x), d=self.dx))
+        # p = 2*np.pi*freq*self.hbar/self.L
+        # for i in range(1, 5):
+        #     self.lines[i].set_xdata(p)
+        # self.lines[1]
+        locs = self.ax.get_xticks()
+        labels = self.ax.get_xticklabels()
+        self._x_ticks = [text.get_text() for text in labels]
+        p_range = (2*np.pi*self.hbar/self.L)*(self.N)/(self.dx*self.N)
+        p_ticks = []
+        for x in locs:
+            if self.N % 2 == 0:
+                p0 = -((2*np.pi*self.hbar/self.L)
+                       *(self.N/(2*self.dx*self.N)))
+            else:
+                p0 = -((2*np.pi*self.hbar/self.L)*
+                       ((self.N - 1)/(2*self.dx*self.N)))
+            print(x)
+            p_tick = p0 + p_range*((float(str(x)) - self.x[0])/
+                                   (self.x[-1] - self.x[0]))
+            p_tick = np.round(p_tick, 1)
+            p_ticks.append(p_tick)
+        # xp_dict = {self.x[i]: p[i] for i in 
+        #            [self.N//10, 3*self.N//10, 5*self.N//10,
+        #             7*self.N//10, 9*self.N//10]}
+        # p_ticks = [xp_dict[key] for key in xp_dict]
+        self.lines[4].set_alpha(0.0)
+        self._main_msg_store = self._main_msg
+        self._main_msg = ""
+        self.lines[5].set_text(self._main_msg)
+        self.lines[8].set_alpha(0.0)
+        if not self._show_energy_levels:
+            self.lines[9].set_alpha(0.0)
+            self.lines[10].set_alpha(0.0)
+            self.lines[11].set_alpha(0.0)
+        self.toggle_blit()
+        self.ax.set_xticklabels(p_ticks)
+        self.ax.set_xlabel("p")
+        # self.ax.set_xlim(np.amin(p), np.amax(p))
+        self.toggle_blit()
+
+    def display_position(self, *args):
+        """
+        Show the wavefunction in the position basis.
+        """
+        self._show_p = False
+        psi_text0 = self.lines[0].get_text().replace("(p)", "(x)")
+        psi_text6 = self.lines[6].get_text().replace("(p)", "(x)")
+        psi_text7 = self.lines[6].get_text().replace("(p)", "(x)")
+        self.lines[0].set_text(psi_text0)
+        self.lines[6].set_text(psi_text6)
+        self.lines[7].set_text(psi_text7)
+        self.lines[4].set_alpha(1.0)
+        self._main_msg = self._main_msg_store
+        self.lines[5].set_text(self._main_msg)
+        self.lines[8].set_alpha(1.0)
+        self.lines[9].set_alpha(1.0)
+        self.lines[10].set_alpha(1.0)
+        self.lines[11].set_alpha(1.0)
+        self.toggle_blit()
+        self.ax.set_xticklabels(self._x_ticks)
+        self.ax.set_xlabel("x")
+        self.ax.set_xlim(self.x[0] - 0.02*(self.x[-1] - self.x[0]),
+                         self.x[-1] + 0.02*(self.x[-1] - self.x[0]))
+        self.toggle_blit()
 
     def measure_energy(self, *args):
         """
@@ -316,7 +405,7 @@ class QuantumAnimation(Constants):
         if not hasattr(self.U_t, "energy_eigenvalues"):
             self.U_t.set_energy_eigenstates()
         EE = np.sort(np.real(self.U_t.energy_eigenvalues))
-        EEd = {E:(i + 1) for i, E in enumerate(EE)}
+        EEd = {E: (i + 1) for i, E in enumerate(EE)}
         E = self.psi.set_to_eigenstate(
             self.U_t.energy_eigenvalues,
             self.U_t.energy_eigenstates)
@@ -409,7 +498,7 @@ class QuantumAnimation(Constants):
         Measure the position. This collapses the wavefunction
         to the most probable position eigenstate.
         """
-        x = self.psi.set_to_eigenstate(self.x, self.U_t.id)
+        x = self.psi.set_to_eigenstate(self.x, self.identity_matrix)
         self._msg = "Position x = %s" % (str(np.round(x, 3)))
         self._msg_i = 50
         self.update_expected_energy_level()
@@ -433,7 +522,7 @@ class QuantumAnimation(Constants):
         self.m = m
         self.psi.m = m
         self.U_t.m = m
-        self.U_t = self.set_unitary(self.V_x)
+        self.set_unitary(self.V_x)
 
     def _change_constants(self, hbar, *args):
         """
@@ -442,7 +531,18 @@ class QuantumAnimation(Constants):
         self.hbar = hbar
         self.psi.hbar = hbar
         self.U_t.hbar = hbar
-        self.U_t = self.set_unitary(self.V_x)
+        self.set_unitary(self.V_x)
+
+    def set_main_message(self, message: str) -> None:
+        """
+        Set the main message, i.e. the text at the top left
+        of the plot.
+        """
+        if self._show_p:
+            self._main_msg_store = message
+        else:
+            self.lines[5].set_text(message)
+            self._main_msg = message
 
     def set_scale_y(self) -> float:
         """
@@ -472,8 +572,8 @@ class QuantumAnimation(Constants):
                                            self.U_t.energy_eigenvalues,
                                            self.U_t.energy_eigenstates)
             exp_energy_show = exp_energy/(self._scale_y*self.U_t._scale)
-            self.line10.set_ydata([exp_energy_show,
-                                       exp_energy_show])
+            self.line11.set_ydata([exp_energy_show,
+                                   exp_energy_show])
         
     def update_energy_levels(self) -> None:
         """
@@ -483,15 +583,15 @@ class QuantumAnimation(Constants):
             if not hasattr(self.U_t, "_nE"):
                 self._set_eigenstates()
             self.set_scale_y()
-            q = np.array([(self.x[0] if ((i - 1)//2)%2 == 0
+            q = np.array([(self.x[0] if ((i - 1)//2) % 2 == 0
                            else self.x[-1]) for i in
                           range(2*len(self.U_t.energy_eigenvalues) - 1)])
             e = np.array([self.U_t.energy_eigenvalues[i//2]
                           for i in
                           range(2*len(self.U_t.energy_eigenvalues) - 1)])
             e = e/(self._scale_y*self.U_t._scale)
-            self.line9.set_xdata(q)
-            self.line9.set_ydata(e)
+            self.line10.set_xdata(q)
+            self.line10.set_ydata(e)
             self.update_expected_energy_level()
 
     def show_energy_levels(self) -> bool:
@@ -504,6 +604,11 @@ class QuantumAnimation(Constants):
         Toggle whether energy levels are shown or not.
         """
         self.set_scale_y()
+        if self._show_p:
+            alpha = 0.0 if self.lines[9].get_alpha() == 1.0 else 1.0
+            self.lines[9].set_alpha(alpha)
+            self.lines[10].set_alpha(alpha)
+            self.lines[11].set_alpha(alpha)
         if not self._show_energy_levels:
             if not hasattr(self.U_t, "_nE"):
                 self._set_eigenstates()
@@ -521,25 +626,25 @@ class QuantumAnimation(Constants):
                                        self.U_t.energy_eigenvalues,
                                        self.U_t.energy_eigenstates)
             exp_energy_show = exp_energy/(self._scale_y*self.U_t._scale)
-            line9, = self.ax.plot(q, e,
+            line10, = self.ax.plot(q, e,
                                   linewidth=0.25,
                                   animated=True,
                                   color="darkslategray")
             expected_energy_show = exp_energy/(self._scale_y*self.U_t._scale)
-            line10, = self.ax.plot([self.x[0], self.x[-1]],
+            line11, = self.ax.plot([self.x[0], self.x[-1]],
                                    [expected_energy_show,
                                     expected_energy_show],
-                                    animated=True,
-                                    color="gray")
-            self.line9 = line9
+                                   animated=True,
+                                   color="gray")
             self.line10 = line10
-            self.lines.append(self.line9)
+            self.line11 = line11
             self.lines.append(self.line10)
-            self.line9.set_alpha(0.75)
+            self.lines.append(self.line11)
             self.line10.set_alpha(0.75)
+            self.line11.set_alpha(0.75)
         else:
-            self.line9.set_alpha(0.0)
             self.line10.set_alpha(0.0)
+            self.line11.set_alpha(0.0)
             self.lines.pop()
             self.lines.pop()
         self._show_energy_levels = not self._show_energy_levels
@@ -549,7 +654,7 @@ class QuantumAnimation(Constants):
         toggle whether to show expectation values
         or not
         """
-        if self._show_exp_val == True:
+        if self._show_exp_val:
             self.lines[5].set_text(self._main_msg)
             self.lines[5].set_position(self._msg_pos)
         else:
@@ -583,7 +688,7 @@ class QuantumAnimation(Constants):
         self.ax = self.figure.add_subplot(1, 1, 1)
 
         # Add a grid
-        #self.ax.grid(linestyle="--")
+        # self.ax.grid(linestyle="--")
 
         # Set the x limits of the plot
         xmin = self.x[0]
@@ -603,7 +708,7 @@ class QuantumAnimation(Constants):
 
         self.ax.set_ylim(ymin-0.1*yrange, ymax+0.1*yrange)
 
-        # Set inital plots with ax.plot.
+        # Set initial plots with ax.plot.
         # They return the line object which controls the appearance
         # of their plots.
         # Note that the number naming of the variables is not in any
@@ -668,7 +773,6 @@ class QuantumAnimation(Constants):
                              # animated=True
                              )
 
-
         line0 = self.ax.text((xmax-xmin)*0.01 + xmin,
                              ymin + (ymax-ymin)*0.05,
                              # "—— |Ψ(x)|",
@@ -719,8 +823,8 @@ class QuantumAnimation(Constants):
         # Store each line in a list.
         self.lines = [line0, line1, line2, line3,
                       line4, line5,
-                      line6, line7
-                      #line8
+                      line6, line7,
+                      line8
                       ]
 
         # Another round of setting up and scaling the line plots ...
@@ -748,9 +852,7 @@ class QuantumAnimation(Constants):
         # self.ax.plot([0, 0], [-self.bounds[-1], self.bounds[-1]],
         #              color="gray", linewidth=0.5, linestyle = "--")
 
-        # Show where the potential is zero
-        self.ax.text(xmax*0.8, 0.03, "E = 0",
-                     color="gray", fontdict={'size':8})
+        # Show where the energy for the potential
         self.lines.append(self.ax.text
                           (xmax*0.7, maxp*0.92,
                            "E = %.0f" % (V_max),
@@ -759,6 +861,8 @@ class QuantumAnimation(Constants):
                           (xmax*0.68, -maxp*0.96,
                            "E = %.0f" % (-V_max),
                            color="gray", fontdict={'size':8}))
+        self.lines.append(self.ax.text(xmax*0.8, 0.03, "E = 0",
+                          color="gray", fontdict={'size':8}))
 
         self._main_msg = self.lines[5].get_text()
 
@@ -776,6 +880,14 @@ class QuantumAnimation(Constants):
             self.U_t(self.psi)
             self._t += self.dt
 
+        # Define and set psi depending
+        # on whether to show psi in the position
+        # or momentum basis.
+        if self._show_p:
+            psi = self.psi.p
+        else:
+            psi = self.psi.x
+
         # Set probability density or absolute value of wavefunction
         if self._display_probs:
             # An underflow error occurs here after
@@ -783,15 +895,15 @@ class QuantumAnimation(Constants):
             # Just ignore this for now.
             try:
                 self.lines[1].set_ydata(
-                    np.real(np.conj(self.psi.x)*self.psi.x)/3)
+                    np.real(np.conj(psi)*psi)/3.0)
             except FloatingPointError as E:
                 print(E)
         else:
-            self.lines[1].set_ydata(np.abs(self.psi.x))
+            self.lines[1].set_ydata(np.abs(psi))
 
         # Set real and imaginary values
-        self.lines[2].set_ydata(np.real(self.psi.x))
-        self.lines[3].set_ydata(np.imag(self.psi.x))
+        self.lines[2].set_ydata(np.real(psi))
+        self.lines[3].set_ydata(np.imag(psi))
 
         # Find fps stats
         t0, tf = self.t_perf
@@ -815,10 +927,10 @@ class QuantumAnimation(Constants):
             self._msg_i += -1
             self.lines[5].set_text(self._main_msg)
 
-        elif (self._show_exp_val and self._msg_i < 0):
+        elif self._show_exp_val and self._msg_i < 0:
             if not hasattr(self.U_t, "energy_eigenvalues"):
                 self.U_t.set_energy_eigenstates()
-            x_mean, x_sigma = self.psi.avg_and_std(self.x, self.U_t.id)
+            x_mean, x_sigma = self.psi.avg_and_std(self.x, self.identity_matrix)
             p_mean, p_sigma = self.psi.p_avg_and_std()
             E_mean, E_sigma = self.psi.avg_and_std(
                 self.U_t.energy_eigenvalues,
@@ -833,7 +945,7 @@ class QuantumAnimation(Constants):
                 "<E> = %.0f\n"
                 "σₓ = %.2f\n"
                 "σₚ = %.2f\n"
-                "σᴇ = %.0f"%(
+                "σᴇ = %.0f" % (
                     self._t,
                     # self.fps,
                     # self.avg_fps,
@@ -846,7 +958,7 @@ class QuantumAnimation(Constants):
                     )
                 )
 
-        return (self.lines)
+        return self.lines
 
     def animation_loop(self):
         """Produce all frames of animation.
@@ -866,19 +978,31 @@ class QuantumAnimation(Constants):
         """
         self.fpi = new_fpi
 
+    def toggle_blit(self):
+        """
+        Toggle blit. This is used so that it is possible to
+        update the appearance of the plot title and axes, which would otherwise
+        be entirely static with blitting.
+        """
+        if self.main_animation._blit:
+            self.main_animation._blit_clear(
+                self.main_animation._drawn_artists, 
+                self.main_animation._blit_cache)
+            self.main_animation._blit = False
+        else:
+            # self.main_animation._init_draw()
+            self.main_animation._step()
+            self.main_animation._blit = True
+            self.main_animation._setup_blit()
+
 
 if __name__ == "__main__":
 
     from matplotlib import interactive
     interactive(True)
-
     consts = Constants()
     x = np.linspace(consts.x0, (consts.L + consts.x0), consts.N)
     V = (x)**2/2
-    # psi = np.exp(-0.5*((x-0.25)/0.05)**2)
     psi = np.cos(3*np.pi*x/consts.L)
     ani = QuantumAnimation(function=psi, potential=V)
     ani.animation_loop()
-    # plt.legend()
-    # plt.show()
-

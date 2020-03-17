@@ -12,6 +12,7 @@ from qm.constants import Constants
 from matplotlib.backends import backend_tkagg
 from animation import QuantumAnimation
 import tkinter as tk
+from tkinter import ttk
 from typing import Tuple
 
 np.seterr(all='raise')
@@ -142,7 +143,7 @@ class App(QuantumAnimation):
         self.canvas.get_tk_widget().grid(
             row=0,
             column=0,
-            rowspan=19,
+            rowspan=20,
             columnspan=2
             )
         self.canvas.get_tk_widget().bind(
@@ -178,13 +179,29 @@ class App(QuantumAnimation):
         self.change_view = b
         self.change_view.grid(row=1, column=3, columnspan=2, padx=(10, 10))
 
+        # Show Wavefunction in Position/Momentum Basis
+        # TODO: Don't use a long and unnecessary lambda function
+        b2 = tk.Button(self.window,
+                      text='View in Momentum Basis',
+                      command=lambda:
+                          [self.display_momentum(),
+                           self.change_view2.config(
+                                   text='View in Position Basis')] if (
+                                         self._show_p is False) else [
+                                              self.display_position(),
+                                              self.change_view2.config(
+                                                    text='View in Momentum'
+                                                         ' Basis')])
+        self.change_view2 = b2
+        self.change_view2.grid(row=2, column=3, columnspan=2, padx=(10, 10))
+
         # Measurement label
         self.measurement_label = tk.Label(
             self.window,
             text="Measure:"
             )
         self.measurement_label.grid(
-            row=2,
+            row=3,
             column=3,
             columnspan=3,
             sticky=tk.E + tk.W + tk.S,
@@ -198,7 +215,7 @@ class App(QuantumAnimation):
             command=self.measure_position
             )
         self.measure_position_button.grid(
-            row=3,
+            row=4,
             column=3,
             columnspan=2,
             sticky=tk.E + tk.W + tk.N + tk.S,
@@ -212,7 +229,7 @@ class App(QuantumAnimation):
             command=self.measure_momentum
             )
         self.measure_momentum_button.grid(
-            row=4,
+            row=5,
             column=3,
             columnspan=2,
             sticky=tk.E + tk.W + tk.N + tk.S,
@@ -226,7 +243,7 @@ class App(QuantumAnimation):
             command=self.measure_energy
             )
         self.measure_energy_button.grid(
-            row=5,
+            row=6,
             column=3,
             columnspan=2,
             sticky=tk.E + tk.W + tk.N,
@@ -239,7 +256,7 @@ class App(QuantumAnimation):
             text="Mouse:"
             )
         self.mouse_menu_label.grid(
-            row=6,
+            row=7,
             column=3,
             sticky=tk.W + tk.E + tk.S,
             padx=(10, 10),
@@ -262,7 +279,7 @@ class App(QuantumAnimation):
             command=self.mouse_menu_handler
             )
         self.mouse_menu.grid(
-            row=7,
+            row=8,
             column=3,
             columnspan=2,
             sticky=tk.W + tk.E + tk.N,
@@ -275,7 +292,7 @@ class App(QuantumAnimation):
                 text="Enter Wavefunction \u03C8(x)"
                 )
 
-        self.enter_function_label.grid(row=8,
+        self.enter_function_label.grid(row=9,
                                        column=3,
                                        columnspan=2,
                                        sticky=tk.E + tk.W + tk.S,
@@ -285,7 +302,7 @@ class App(QuantumAnimation):
             "<Return>",
             self.update_wavefunction_by_name
             )
-        self.enter_function.grid(row=9,
+        self.enter_function.grid(row=10,
                                  column=3,
                                  columnspan=2,
                                  sticky=tk.W + tk.E + tk.N + tk.S,
@@ -296,7 +313,7 @@ class App(QuantumAnimation):
         b2 = tk.Button(self.window, text='OK',
                        command=self.update_wavefunction_by_name)
         self.update_wavefunction_button = b2
-        self.update_wavefunction_button.grid(row=10,
+        self.update_wavefunction_button.grid(row=11,
                                              column=3,
                                              columnspan=2,
                                              sticky=tk.N + tk.W + tk.E,
@@ -310,7 +327,7 @@ class App(QuantumAnimation):
                        command=self.clear_wavefunction
                        )
         self.clear_wavefunction_button = b3
-        self.clear_wavefunction_button.grid(row=11,
+        self.clear_wavefunction_button.grid(row=12,
                                             column=3,
                                             columnspan=2,
                                             sticky=tk.W + tk.E,
@@ -342,7 +359,7 @@ class App(QuantumAnimation):
             command=self.update_potential_by_preset
             )
         self.potential_menu.grid(
-            row=12,
+            row=13,
             column=3,
             sticky=tk.W + tk.E,
             padx=(10, 10)
@@ -352,14 +369,14 @@ class App(QuantumAnimation):
         self.enter_potential_label = tk.Label(
                 self.window, text="Enter Potential V(x)")
         self.enter_potential_label.grid(
-            row=13,
+            row=14,
             column=3,
             sticky=tk.W + tk.E + tk.S,
             padx=(10, 10))
         self.enter_potential = tk.Entry(self.window)
         self.enter_potential.bind("<Return>", self.update_potential_by_name)
         self.enter_potential.grid(
-            row=14,
+            row=15,
             column=3,
             columnspan=3,
             sticky=tk.W + tk.E + tk.N + tk.S,
@@ -371,7 +388,7 @@ class App(QuantumAnimation):
                        text='OK',
                        command=self.update_potential_by_name)
         self.update_potential_button = b4
-        self.update_potential_button.grid(row=15,
+        self.update_potential_button.grid(row=16,
                                           column=3,
                                           columnspan=2,
                                           sticky=tk.N + tk.W + tk.E,
@@ -382,7 +399,7 @@ class App(QuantumAnimation):
         # Animation speed slider
         self.slider_speed_label = tk.LabelFrame(
                 self.window, text="Animation Speed")
-        self.slider_speed_label.grid(row=16, column=3, padx=(10, 10))
+        self.slider_speed_label.grid(row=17, column=3, padx=(10, 10))
 
         self.slider_speed = tk.Scale(self.slider_speed_label,
                                      from_=0, to=8,
@@ -390,7 +407,7 @@ class App(QuantumAnimation):
                                      length=200,
                                      command=self.change_animation_speed
                                      )
-        self.slider_speed.grid(row=17, column=3, padx=(10, 10))
+        self.slider_speed.grid(row=18, column=3, padx=(10, 10))
         self.slider_speed.set(1)
 
         # Right click Menu
@@ -421,7 +438,7 @@ class App(QuantumAnimation):
         # Quit button
         self.quit_button = tk.Button(
                 self.window, text='QUIT', command=self.quit)
-        self.quit_button.grid(row=18, column=3)
+        self.quit_button.grid(row=19, column=3)
 
         self.window.bind("<Up>", self.higher_energy_eigenstate)
         self.window.bind("<Down>", self.lower_energy_eigenstate)
@@ -509,6 +526,37 @@ class App(QuantumAnimation):
         self.set_wavefunction(self.enter_function.get())
         self.update_expected_energy_level()
 
+    def _update_wavefunction_by_sketch(self, x: float, y: float) -> None:
+        """
+        Helper function for update_wavefunction_by_sketch
+        and update_wavefunction_by_sketch_while_paused.
+        """
+        if not self._show_p:
+            if self._display_probs:
+                psi2_new = change_array(
+                    self.x, self.psi.x*np.conj(self.psi.x)/3, x, y)
+                self.set_wavefunction(np.sqrt(3*psi2_new),
+                                    normalize=False)
+            else:
+                self.set_wavefunction(change_array(
+                    self.x, self.psi.x, x, y), normalize=False)
+        else:
+            if (x > self.x[self.N//4] and x < self.x[3*self.N//4]):
+                # y = y*np.exp(-(x - self.x[self.N//2])**2/(
+                # 2*((self.x[3*self.N//4] - self.x[self.N//4])/2)**2))
+                if self._display_probs:
+                    phases = np.angle(self.psi.p)
+                    psi2_new = change_array(
+                        self.x, self.psi.p*np.conj(self.psi.p)/3, x, y)
+                    psi_new = np.sqrt(3*psi2_new)*np.exp(1.0j*phases)
+                    self.set_wavefunction(np.copy(np.fft.ifft(
+                                          np.fft.ifftshift((psi_new)*(self.N/10)))), 
+                                          normalize=False)
+                else: 
+                    new_p = change_array(self.x, self.psi.p, x, y)
+                    self.set_wavefunction(np.copy(np.fft.ifft(
+                        np.fft.ifftshift((new_p)*(self.N/10)))), normalize=False)
+
     def update_wavefunction_by_sketch(self, event: tk.Event) -> None:
         """
         Update the wavefunction given mouse clicks
@@ -516,15 +564,9 @@ class App(QuantumAnimation):
         can still run if the wavefunction is changed.
         """
         x, y = self.locate_mouse(event)
-        if self._display_probs:
-            psi2_new = change_array(
-                self.x, self.psi.x*np.conj(self.psi.x)/3, x, y)
-            self.set_wavefunction(np.sqrt(3*psi2_new),
-                                  normalize=False)
-        else:
-            self.set_wavefunction(change_array(
-                self.x, self.psi.x, x, y), normalize=False)
+        self._update_wavefunction_by_sketch(x, y)
         self.update_expected_energy_level()
+
 
     def update_wavefunction_to_eigenstate(self, event: tk.Event) -> None:
         """
@@ -565,16 +607,7 @@ class App(QuantumAnimation):
                 self.fpi_before_pause is not None):
             self.fpi = self.fpi_before_pause
             self.fpi_before_pause = None
-
-        # Update the wavefunction
-        if self._display_probs:
-            psi2_new = change_array(
-                self.x, self.psi.x*np.conj(self.psi.x)/3, x, y)
-            self.set_wavefunction(np.sqrt(3*psi2_new),
-                                  normalize=False)
-        else:
-            self.set_wavefunction(change_array(
-                self.x, self.psi.x, x, y), normalize=False)
+        self._update_wavefunction_by_sketch(x, y)
         self.update_expected_energy_level()
 
     def clear_wavefunction(self, *args: tk.Event) -> None:
@@ -615,99 +648,100 @@ class App(QuantumAnimation):
         Update the potential given mouse input.
         """
 
-        x, y = self.locate_mouse(event)
+        if not self._show_p:
+            x, y = self.locate_mouse(event)
 
-        # print(np.amax(self.V_x[1:-2]))
-        # print (str(event.state))
+            # print(np.amax(self.V_x[1:-2]))
+            # print (str(event.state))
 
-        # This code block is runned right
-        # when the mouse is clicked and held down
-        if (str(event.type) == "Motion" or event.num != 1) and (
-                self.fpi_before_pause is None):
+            # This code block is runned right
+            # when the mouse is clicked and held down
+            if (str(event.type) == "Motion" or event.num != 1) and (
+                    self.fpi_before_pause is None):
 
-            # Get a scale for the y-coordinates in order
-            # for it to match up with the potential
-            if not self.potential_is_reshaped:
-                if np.amax(self.V_x > 0):
-                    self.scale_y = np.amax(self.V_x[1:-2])/(
-                        self.bounds[-1]*0.95)
-                elif np.amax(self.V_x < 0):
-                    self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
-                        self.bounds[-1]*0.95)
-                else:
-                    self.scale_y = 1.0
-                self.potential_is_reshaped = True
+                # Get a scale for the y-coordinates in order
+                # for it to match up with the potential
+                if not self.potential_is_reshaped:
+                    if np.amax(self.V_x > 0):
+                        self.scale_y = np.amax(self.V_x[1:-2])/(
+                            self.bounds[-1]*0.95)
+                    elif np.amax(self.V_x < 0):
+                        self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
+                            self.bounds[-1]*0.95)
+                    else:
+                        self.scale_y = 1.0
+                    self.potential_is_reshaped = True
 
-            # Set the animation speed zero
-            self.fpi_before_pause = self.fpi
-            self.fpi = 0
+                # Set the animation speed zero
+                self.fpi_before_pause = self.fpi
+                self.fpi = 0
 
-            # Change the potential name to V(x)
-            self.V_name = "V(x)"
-            self.V_latex = "$V(x)$"
-            self.lines[5].set_text(
-                    "$H = %s + $%s, \n%s" % (self._KE_ltx,
-                                             self.V_latex, self._lmts_str))
-            self._main_msg = self.lines[5].get_text()
+                # Change the potential name to V(x)
+                self.V_name = "V(x)"
+                self.V_latex = "$V(x)$"
+                self.lines[5].set_text(
+                        "$H = %s + $%s, \n%s" % (self._KE_ltx,
+                                                self.V_latex, self._lmts_str))
+                self._main_msg = self.lines[5].get_text()
 
-        # This code block is run right after the mouse has been held down
-        elif (str(event.type) == "ButtonRelease" or event.num == 1) and (
-                self.fpi_before_pause is not None):
-            # self.V_x = change_array(
-            #     self.x, self.V_x, x, y)
-            self.U_t = UnitaryOperator1D(np.copy(self.V_x))
-            self.potential_menu_string.set("Choose Preset Potential V(x)")
-            tmp_str = "Choose Preset Potential V(x)"
-            self.previous_potential_menu_string = tmp_str
+            # This code block is run right after the mouse has been held down
+            elif (str(event.type) == "ButtonRelease" or event.num == 1) and (
+                    self.fpi_before_pause is not None):
+                # self.V_x = change_array(
+                #     self.x, self.V_x, x, y)
+                self.U_t = UnitaryOperator1D(np.copy(self.V_x))
+                self.potential_menu_string.set("Choose Preset Potential V(x)")
+                tmp_str = "Choose Preset Potential V(x)"
+                self.previous_potential_menu_string = tmp_str
 
-            # Resume the animation speed
-            self.fpi = self.fpi_before_pause
-            self.fpi_before_pause = None
+                # Resume the animation speed
+                self.fpi = self.fpi_before_pause
+                self.fpi_before_pause = None
 
-        # This elif handles the case when mouse is clicked only once
-        elif (str(event.type) == "ButtonRelease"
-              or event.num == 1) and (self.fpi_before_pause is None):
+            # This elif handles the case when mouse is clicked only once
+            elif (str(event.type) == "ButtonRelease"
+                or event.num == 1) and (self.fpi_before_pause is None):
 
-            # note that code within this elif statement is copied
-            # from other places in this function
+                # note that code within this elif statement is copied
+                # from other places in this function
 
-            # Get a scale for the y-coordinates
-            # in order for it to match up with the potential
-            if not self.potential_is_reshaped:
-                if np.amax(self.V_x > 0):
-                    self.scale_y = np.amax(self.V_x[1:-2])/(
-                        self.bounds[-1]*0.95)
-                elif np.amax(self.V_x < 0):
-                    self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
-                        self.bounds[-1]*0.95)
-                else:
-                    self.scale_y = 1.0
-                self.potential_is_reshaped = True
+                # Get a scale for the y-coordinates
+                # in order for it to match up with the potential
+                if not self.potential_is_reshaped:
+                    if np.amax(self.V_x > 0):
+                        self.scale_y = np.amax(self.V_x[1:-2])/(
+                            self.bounds[-1]*0.95)
+                    elif np.amax(self.V_x < 0):
+                        self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
+                            self.bounds[-1]*0.95)
+                    else:
+                        self.scale_y = 1.0
+                    self.potential_is_reshaped = True
 
+                self.V_x = change_array(
+                    self.x, self.V_x, x, y)
+                self.V_name = "V(x)"
+                self.V_latex = "$V(x)$"
+                self.U_t = UnitaryOperator1D(np.copy(self.V_x))
+                self.lines[5].set_text(
+                        "$H = %s + $%s, \n%s" % (self._KE_ltx,
+                                                self.V_latex, self._lmts_str))
+                self._main_msg = self.lines[5].get_text()
+                self.potential_menu_string.set("Choose Preset Potential V(x)")
+                tmp_str = "Choose Preset Potential V(x)"
+                self.previous_potential_menu_string = tmp_str
+
+            # Re-draw the potential
+            y *= self.scale_y
             self.V_x = change_array(
-                self.x, self.V_x, x, y)
-            self.V_name = "V(x)"
-            self.V_latex = "$V(x)$"
-            self.U_t = UnitaryOperator1D(np.copy(self.V_x))
-            self.lines[5].set_text(
-                    "$H = %s + $%s, \n%s" % (self._KE_ltx,
-                                             self.V_latex, self._lmts_str))
-            self._main_msg = self.lines[5].get_text()
-            self.potential_menu_string.set("Choose Preset Potential V(x)")
-            tmp_str = "Choose Preset Potential V(x)"
-            self.previous_potential_menu_string = tmp_str
-
-        # Re-draw the potential
-        y *= self.scale_y
-        self.V_x = change_array(
-                self.x, self.V_x, x, y)
-        if np.amax(self.V_x > 0):
-            self.lines[4].set_ydata(self.V_x/self.scale_y)
-        elif np.amax(self.V_x < 0):
-            self.lines[4].set_ydata(self.V_x/self.scale_y)
-        else:
-            self.lines[4].set_ydata(self.x*0.0)
-        self.update_energy_levels()
+                    self.x, self.V_x, x, y)
+            if np.amax(self.V_x > 0):
+                self.lines[4].set_ydata(self.V_x/self.scale_y)
+            elif np.amax(self.V_x < 0):
+                self.lines[4].set_ydata(self.V_x/self.scale_y)
+            else:
+                self.lines[4].set_ydata(self.x*0.0)
+            self.update_energy_levels()
 
     def change_animation_speed(self, event: tk.Event) -> None:
         """
@@ -775,6 +809,7 @@ def change_array(x_arr: np.ndarray, y_arr: np.ndarray,
 
 
 if __name__ == "__main__":
-
+    # from matplotlib.pyplot import xkcd
+    # with xkcd():
     run = App()
     tk.mainloop()

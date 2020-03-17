@@ -53,6 +53,13 @@ class Wavefunction1D(Constants):
         except FloatingPointError as E:
             print(E)
 
+    @property
+    def p(self):
+        """
+        The wavefunction in the momentum basis.
+        """
+        return np.fft.fftshift(np.fft.fft(self.x)/(self.N/10))
+
     def expectation_value(self, eigenvalues, eigenstates):
         """Find the expectation value of the wavefunction
         with respect to the eigenvalues and eigenstates
@@ -242,20 +249,15 @@ class UnitaryOperator1D(Constants):
         b2 = K
 
         # Construct the A and B matrices
-        for i in range(N):
-            for l_ in range(N):
-                if (i == l_):
-
-                    A[i][l_] = a1 + J*V[i]
-                    B[i][l_] = b1 - J*V[i]
-
-                elif (l_ == (i + 1)):
-
-                    A[i][l_] = a2
-                    A[l_][i] = a2
-
-                    B[i][l_] = b2
-                    B[l_][i] = b2
+        for i in range(N-1):
+            A[i][i] = a1 + J*V[i]
+            B[i][i] = b1 - J*V[i]
+            A[i][i+1] = a2
+            A[i+1][i] = a2
+            B[i][i+1] = b2
+            B[i+1][i] = b2
+        A[N-1][N-1] = a1 + J*V[N-1]
+        B[N-1][N-1] = b1 - J*V[N-1]
 
         # Obtain U
         self.U = np.dot(np.linalg.inv(A), B)
