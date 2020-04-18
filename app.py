@@ -10,7 +10,7 @@ import numpy as np
 from qm import UnitaryOperator1D
 from qm.constants import Constants
 from matplotlib.backends import backend_tkagg
-from animation import QuantumAnimation
+from animation import QuantumAnimation, scale
 import tkinter as tk
 from tkinter import ttk
 from typing import Tuple
@@ -180,7 +180,6 @@ class App(QuantumAnimation):
         self.change_view.grid(row=1, column=3, columnspan=2, padx=(10, 10))
 
         # Show Wavefunction in Position/Momentum Basis
-        # TODO: Don't use a long and unnecessary lambda function
         b2 = tk.Button(self.window,
                       text='View in Momentum Basis',
                       command=lambda:
@@ -196,17 +195,11 @@ class App(QuantumAnimation):
         self.change_view2.grid(row=2, column=3, columnspan=2, padx=(10, 10))
 
         # Measurement label
-        self.measurement_label = tk.Label(
-            self.window,
-            text="Measure:"
-            )
-        self.measurement_label.grid(
-            row=3,
-            column=3,
-            columnspan=3,
-            sticky=tk.E + tk.W + tk.S,
-            padx=(10, 10)
-            )
+        self.measurement_label = tk.Label(self.window, text="Measure:")
+        self.measurement_label.grid(row=3, column=3, columnspan=3,
+                                    sticky=tk.E + tk.W + tk.S,
+                                    padx=(10, 10)
+                                    )
 
         # Measure position button
         self.measure_position_button = tk.Button(
@@ -278,9 +271,7 @@ class App(QuantumAnimation):
             *self.mouse_menu_tuple,
             command=self.mouse_menu_handler
             )
-        self.mouse_menu.grid(
-            row=8,
-            column=3,
+        self.mouse_menu.grid(row=8, column=3,
             columnspan=2,
             sticky=tk.W + tk.E + tk.N,
             padx=(10, 10)
@@ -292,8 +283,7 @@ class App(QuantumAnimation):
                 text="Enter Wavefunction \u03C8(x)"
                 )
 
-        self.enter_function_label.grid(row=9,
-                                       column=3,
+        self.enter_function_label.grid(row=9, column=3,
                                        columnspan=2,
                                        sticky=tk.E + tk.W + tk.S,
                                        padx=(10, 10))
@@ -302,8 +292,7 @@ class App(QuantumAnimation):
             "<Return>",
             self.update_wavefunction_by_name
             )
-        self.enter_function.grid(row=10,
-                                 column=3,
+        self.enter_function.grid(row=10, column=3,
                                  columnspan=2,
                                  sticky=tk.W + tk.E + tk.N + tk.S,
                                  padx=(11, 11)
@@ -313,12 +302,10 @@ class App(QuantumAnimation):
         b2 = tk.Button(self.window, text='OK',
                        command=self.update_wavefunction_by_name)
         self.update_wavefunction_button = b2
-        self.update_wavefunction_button.grid(row=11,
-                                             column=3,
+        self.update_wavefunction_button.grid(row=11, column=3,
                                              columnspan=2,
                                              sticky=tk.N + tk.W + tk.E,
                                              padx=(10, 10)
-                                             # pady=(10, 10)
                                              )
 
         # Clear wavefunction button
@@ -327,12 +314,10 @@ class App(QuantumAnimation):
                        command=self.clear_wavefunction
                        )
         self.clear_wavefunction_button = b3
-        self.clear_wavefunction_button.grid(row=12,
-                                            column=3,
+        self.clear_wavefunction_button.grid(row=12, column=3,
                                             columnspan=2,
                                             sticky=tk.W + tk.E,
                                             padx=(10, 10)
-                                            # pady=(10, 10)
                                             )
 
         # Drop down for preset potentials
@@ -341,8 +326,8 @@ class App(QuantumAnimation):
             "Simple Harmonic Oscillator": "x**2/2",
             # "Potential Barrier": "10*rect(32*x)",
             "Potential Well": "-rect(4*x)/2",
-            "Potential Well and Barrier":
-            "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
+            # "Potential Well and Barrier":
+            # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
             # "Coulomb": "-1/(100*sqrt(x**2))",
             "Double Well":
                 "(1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4)))/10",
@@ -355,15 +340,12 @@ class App(QuantumAnimation):
             self.window,
             self.potential_menu_string,
             *tuple(key for key in self.potential_menu_dict),
-            # text="Choose a preset potential"
             command=self.update_potential_by_preset
             )
-        self.potential_menu.grid(
-            row=13,
-            column=3,
-            sticky=tk.W + tk.E,
-            padx=(10, 10)
-            )
+        self.potential_menu.grid(row=13, column=3,
+                                 sticky=tk.W + tk.E,
+                                 padx=(10, 10)
+                                )
 
         # Potential function entry field
         self.enter_potential_label = tk.Label(
@@ -375,40 +357,25 @@ class App(QuantumAnimation):
             padx=(10, 10))
         self.enter_potential = tk.Entry(self.window)
         self.enter_potential.bind("<Return>", self.update_potential_by_name)
-        self.enter_potential.grid(
-            row=15,
-            column=3,
-            columnspan=3,
-            sticky=tk.W + tk.E + tk.N + tk.S,
-            padx=(10, 10)
-            )
-
-        # Update potential button
+        self.enter_potential.grid(row=15, column=3, columnspan=3,
+                                  sticky=tk.W + tk.E + tk.N + tk.S,
+                                  padx=(10, 10)
+                                 )
         b4 = tk.Button(self.window,
                        text='OK',
                        command=self.update_potential_by_name)
         self.update_potential_button = b4
-        self.update_potential_button.grid(row=16,
-                                          column=3,
+        self.update_potential_button.grid(row=16, column=3,
                                           columnspan=2,
                                           sticky=tk.N + tk.W + tk.E,
                                           padx=(10, 10)
-                                          # pady=(10, 10)
                                           )
-
-        # Animation speed slider
-        self.slider_speed_label = tk.LabelFrame(
-                self.window, text="Animation Speed")
-        self.slider_speed_label.grid(row=17, column=3, padx=(10, 10))
-
-        self.slider_speed = tk.Scale(self.slider_speed_label,
-                                     from_=0, to=8,
-                                     orient=tk.HORIZONTAL,
-                                     length=200,
-                                     command=self.change_animation_speed
-                                     )
-        self.slider_speed.grid(row=18, column=3, padx=(10, 10))
-        self.slider_speed.set(1)
+        self.sliders2 = []
+        self.sliders2_count = 0
+        self.slider_speed_label = None
+        self.slider_speed = None
+        self.quit_button = None
+        self.set_widgets_after_enter_potential()
 
         # Right click Menu
         self.menu = tk.Menu(self.window, tearoff=0)
@@ -434,14 +401,9 @@ class App(QuantumAnimation):
         self.menu.add_command(label="Lower Stationary State",
                               command=self.lower_energy_eigenstate)
         self.window.bind("<ButtonRelease-3>", self.popup_menu)
-
-        # Quit button
-        self.quit_button = tk.Button(
-                self.window, text='QUIT', command=self.quit)
-        self.quit_button.grid(row=19, column=3)
-
         self.window.bind("<Up>", self.higher_energy_eigenstate)
         self.window.bind("<Down>", self.lower_energy_eigenstate)
+        # self.window.bind("<Control>", lambda *arg: print("ctrl printed"))
 
         self.animation_loop()
 
@@ -452,6 +414,91 @@ class App(QuantumAnimation):
         self.potential_is_reshaped = False
 
         # self.toggle_energy_levels()
+
+    def set_widgets_after_enter_potential(self) -> None:
+        # Update potential button
+        for slider in self.sliders2:
+            slider.destroy()
+        self.sliders2 = []
+        # if self.update_potential_button is not None:
+        #     self.update_potential_button.destroy()
+        #     self.update_potential_button = None
+        if self.slider_speed_label is not None:
+            self.slider_speed_label.destroy()
+            self.slider_speed_label = None
+        if self.slider_speed is not None:
+            self.slider_speed.destroy()
+            self.slider_speed = None
+        if self.quit_button is not None:
+            self.quit_button.destroy()
+            self.quit_button = None
+        self.sliders2_count = 0
+        if len(self.V_params) > 0:
+            for i in range(len(self.V_params)):
+                self.sliders2.append(
+                    tk.Scale(self.window, 
+                             label="change %s: " % str(self.V_params[i][0]),
+                             from_=-2, to=2,
+                             resolution=0.01,
+                             orient=tk.HORIZONTAL,
+                             length=200,
+                             command=self.update_potential_by_slider
+                            )
+                )
+                self.sliders2[i].grid(
+                    row=17 + self.sliders2_count, 
+                    column=3, columnspan=2, 
+                    sticky=tk.N+tk.W+tk.E, padx=(10, 10)
+                )
+                self.sliders2[i].set(self.V_params[i][1])
+                self.sliders2_count += 1
+        # self.update_potential_button.destroy()
+        # self.slider_speed_label.destroy()
+        # self.slider_speed.destroy()
+        # self.quit_button.destroy()
+
+        # Animation speed slider
+        self.slider_speed_label = tk.LabelFrame(
+                self.window, text="Animation Speed")
+        self.slider_speed_label.grid(row=17 + self.sliders2_count, 
+                                     column=3, padx=(10, 10))
+
+        self.slider_speed = tk.Scale(self.slider_speed_label,
+                                     from_=0, to=8,
+                                     orient=tk.HORIZONTAL,
+                                     length=200,
+                                     command=self.change_animation_speed
+                                     )
+        self.slider_speed.grid(row=18 + self.sliders2_count,
+                               column=3, padx=(10, 10))
+        self.slider_speed.set(1)
+
+        # Quit button
+        self.quit_button = tk.Button(
+                self.window, text='QUIT', command=self.quit)
+        self.quit_button.grid(row=19  + self.sliders2_count, 
+                              column=3)
+
+    def update_potential_by_slider(self, *event: tk.Event) -> None:
+        if not self.potential_is_reshaped:
+            if np.amax(self.V_x > 0):
+                self.scale_y = np.amax(self.V_x[1:-2])/(
+                    self.bounds[-1]*0.95)
+            elif np.amax(self.V_x < 0):
+                self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
+                    self.bounds[-1]*0.95)
+            else:
+                self.scale_y = 1.0
+            self.potential_is_reshaped = True
+        params = []
+        for i in range(len(self.sliders2)):
+            params.append(self.sliders2[i].get())
+        self.V = lambda x: self.V_base(x, *params)
+        self.V_x = scale(self.V(self.x), 15)
+        self.U_t = UnitaryOperator1D(self.V)
+        # Re-draw the potential
+        self.lines[4].set_ydata(self.V_x/self.scale_y)
+        self.update_energy_levels()
 
     def popup_menu(self, event: tk.Event) -> None:
         """
@@ -573,14 +620,15 @@ class App(QuantumAnimation):
         Update the wavefunction to an eigenstate
         """
         x, y = self.locate_mouse(event)
-        if np.amax(self.V_x > 0):
-            self.scale_y = np.amax(self.V_x[1:-2])/(
-                self.bounds[-1]*0.95)
-        elif np.amax(self.V_x < 0):
-            self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
-                self.bounds[-1]*0.95)
-        else:
-            self.scale_y = 1.0
+        if not self.potential_is_reshaped:
+            if np.amax(self.V_x > 0):
+                self.scale_y = np.amax(self.V_x[1:-2])/(
+                    self.bounds[-1]*0.95)
+            elif np.amax(self.V_x < 0):
+                self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
+                    self.bounds[-1]*0.95)
+            else:
+                self.scale_y = 1.0
         energy = y*self.scale_y*self.U_t._scale
         self.set_to_eigenstate(energy, self.scale_y)
         self.update_expected_energy_level()
@@ -624,24 +672,29 @@ class App(QuantumAnimation):
         self.potential_is_reshaped = False
         self.potential_menu_string.set("Choose Preset Potential V(x)")
         self.previous_potential_menu_string = "Choose Preset Potential V(x)"
+        no_prev_param_sliders = True if len(self.V_params) == 0 else False
         self.set_unitary(self.enter_potential.get())
         self.update_energy_levels()
+        if not no_prev_param_sliders or len(self.V_params) > 0:
+            self.set_widgets_after_enter_potential()
 
     def update_potential_by_preset(self, name: str) -> None:
         """
         Update the potential from the dropdown menu
         """
         self.potential_is_reshaped = False
+        no_prev_param_sliders = True if len(self.V_params) == 0 else False
         if self.previous_potential_menu_string != name:
-            if (
-                    name == "Potential Barrier" or
-                    name == "Potential Well and Barrier"):
+            if (name == "Potential Barrier" or
+                name == "Potential Well and Barrier"):
                 self.set_wavefunction("0")
                 self.set_unitary(self.potential_menu_dict[name])
             else:
                 self.set_unitary(self.potential_menu_dict[name])
             self.previous_potential_menu_string = name
         self.update_energy_levels()
+        if not no_prev_param_sliders or len(self.V_params) > 0:
+            self.set_widgets_after_enter_potential()
 
     def update_potential_by_sketch(self, event: tk.Event) -> None:
         """
@@ -654,7 +707,7 @@ class App(QuantumAnimation):
             # print(np.amax(self.V_x[1:-2]))
             # print (str(event.state))
 
-            # This code block is runned right
+            # This code block is reached right
             # when the mouse is clicked and held down
             if (str(event.type) == "Motion" or event.num != 1) and (
                     self.fpi_before_pause is None):
@@ -688,7 +741,7 @@ class App(QuantumAnimation):
             elif (str(event.type) == "ButtonRelease" or event.num == 1) and (
                     self.fpi_before_pause is not None):
                 # self.V_x = change_array(
-                #     self.x, self.V_x, x, y)
+                #     self.x, self.V_x, x, y, gradual=False)
                 self.U_t = UnitaryOperator1D(np.copy(self.V_x))
                 self.potential_menu_string.set("Choose Preset Potential V(x)")
                 tmp_str = "Choose Preset Potential V(x)"
@@ -719,7 +772,7 @@ class App(QuantumAnimation):
                     self.potential_is_reshaped = True
 
                 self.V_x = change_array(
-                    self.x, self.V_x, x, y)
+                    self.x, self.V_x, x, y, gradual=False)
                 self.V_name = "V(x)"
                 self.V_latex = "$V(x)$"
                 self.U_t = UnitaryOperator1D(np.copy(self.V_x))
@@ -734,7 +787,7 @@ class App(QuantumAnimation):
             # Re-draw the potential
             y *= self.scale_y
             self.V_x = change_array(
-                    self.x, self.V_x, x, y)
+                    self.x, self.V_x, x, y, gradual=False)
             if np.amax(self.V_x > 0):
                 self.lines[4].set_ydata(self.V_x/self.scale_y)
             elif np.amax(self.V_x < 0):
@@ -780,7 +833,7 @@ class App(QuantumAnimation):
 
 
 def change_array(x_arr: np.ndarray, y_arr: np.ndarray,
-                 x: float, y: float) -> np.ndarray:
+                 x: float, y: float, gradual=True) -> np.ndarray:
     """
     Given a location x that maps to a value y,
     and an array x_arr which maps to array y_arr, find the closest
@@ -790,20 +843,24 @@ def change_array(x_arr: np.ndarray, y_arr: np.ndarray,
 
     if (x < x_arr[0]) or (x > x_arr[-1]):
         return y_arr
-    # if (y < y_arr[0]) or (y > y_arr[-1]):
-    #     return y_arr
-
     closest_index = np.argmin(np.abs(x_arr - x))
     y_arr[closest_index] = y
-
-    # If len(x) is large, change nearby values as well.
-    if (len(x_arr) > 100):
-        try:
-            for i in range(3):
-                y_arr[closest_index + i] = y
-                y_arr[closest_index - i] = y
-        except IndexError:
-            pass
+    n = 1
+    if len(x_arr) > 100:
+        n = 4 if gradual else 3
+    if (closest_index - n >= -1 and 
+        closest_index + n <= len(x_arr)):
+        for i in range(n):
+            if i < n - 1:
+                y_arr[closest_index+i] = y
+                y_arr[closest_index-i] = y
+            elif i == n - 1:
+                if gradual:
+                    y_arr[closest_index+i] = (y + y_arr[closest_index+i])/2.0
+                    y_arr[closest_index-i] = (y + y_arr[closest_index-i])/2.0
+                else:
+                    y_arr[closest_index+i] = y
+                    y_arr[closest_index-i] = y
 
     return y_arr
 

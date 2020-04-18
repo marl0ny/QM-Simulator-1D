@@ -103,15 +103,26 @@ class Wavefunction1D(Constants):
                 self.x = waveform(np.linspace(self.x0,
                                               (self.L + self.x0),
                                               self.N))
-            except:
-                tmpx = np.linspace(self.x0, (self.L + self.x0),
-                                   self.N)
-                self.x = np.array([waveform(x) for x in tmpx])
+            except Exception as e:
+                if "underflow" in str(e).lower():
+                    posarr = np.linspace(self.x0, (self.L + 
+                                       self.x0), self.N)
+                    self.x = []
+                    for i in range(len(posarr)):
+                        try:
+                            self.x.append(waveform(posarr[i]))
+                        except:
+                            self.x.append(0.0)
+                    self.x = np.array(self.x)
+                else:
+                    tmpx = np.linspace(self.x0, (self.L + self.x0),
+                                    self.N)
+                    self.x = np.array([waveform(x) for x in tmpx])
 
             # This is a quick fix to the issue where the
             # lambdify function returns a single 0 for all
             # input, which occurs when strings of the
-            # form "0*x" are inputed.
+            # form "0*x" are imputed.
             try:
                 len(self.x)
             except TypeError as E:
@@ -127,14 +138,16 @@ class Wavefunction1D(Constants):
     def normalize(self):
         """Normalize the wavefunction
         """
-
         try:
-            self.x = self.x/np.sqrt(
-                np.trapz(np.conj(self.x)*self.x, dx=self.dx))
-            self.x = np.ascontiguousarray(self.x, np.complex128)
-            # self.x = np.array(self.x, np.complex128)
-        except FloatingPointError as E:
-            print(E)
+            x2 = self.x*np.conj(self.x)
+        except FloatingPointError as e:
+            if "underflow" in str(e).lower():
+                x2 = [0.0 if x_i == 1e-30 else 
+                      x_i*np.conj(x_i) for x_i in self.x]
+            else:
+                raise e
+        self.x = self.x/np.sqrt(np.trapz(x2, dx=self.dx))
+        self.x = np.ascontiguousarray(self.x, np.complex128)
 
     @property
     def p(self):
@@ -249,7 +262,7 @@ class Wavefunction1D(Constants):
         p = 2*np.pi*k*self.hbar/self.L
         return p
 
-    def set_to_eigenstate(self, eigenvalues, eigenstates):
+    def set_to_eigenstate(self, eigenvalues, eigenstates, smear=False):
         """Set the wavefunction to an eigenstate of
         any operator. Given the eigenvalues and eigenvectors
         of the operator, reset the wavefunction to the
@@ -264,6 +277,13 @@ class Wavefunction1D(Constants):
         a = [i for i in range(len(prob))]
         choice = np.random.choice(a=a, size=1, p=prob, replace=False)
         self.x = (eigenstates.T[[choice[0]]][0])
+        if smear == True:
+            for i in range(1, 3):
+                if choice[0] - i >= 0 and choice[0] + i < self.N: 
+                    self.x += ((eigenstates.T[[choice[0] + i]][0])*
+                               np.exp(-(i/(1))**2.0/2.0))
+                    self.x += ((eigenstates.T[[choice[0] - i]][0])*
+                               np.exp(-(i/(1))**2.0/2.0))
 
         self.normalize()
 

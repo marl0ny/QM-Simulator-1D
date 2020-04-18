@@ -8,7 +8,7 @@ mode and typing command line arguments.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from functions import rect, convert_to_function
+from functions import rect, convert_to_function, FunctionRtoR
 from qm.constants import Constants
 from qm import Wavefunction1D, UnitaryOperator1D
 from time import perf_counter
@@ -149,7 +149,13 @@ class QuantumAnimation(Constants):
                              (self.L + self.x0),
                              self.N)
 
+        # the parameters
+        self.V_base = None
+        self.V_params = {}
+
         self.set_wavefunction(function)
+
+        self.V_x = None
         self.set_unitary(potential)
 
         self._init_plots()
@@ -158,12 +164,6 @@ class QuantumAnimation(Constants):
         """Parse input to set
         the wavefunction attributes.
         """
-        # TODO: -Clean this up
-        #       -Add helper functions that are common to
-        #        set_wavefunction and set_unitary
-        #       -Think of all possible inputs
-        #        and sanitation methods
-
         if isinstance(psi, str):
             try:
                 if psi.strip().replace(".", "").replace("-", "").replace(
@@ -205,8 +205,6 @@ class QuantumAnimation(Constants):
         This also sets up the potential function
         attributes in the process.
         """
-        # TODO: Simplify this code
-
         if isinstance(V, str):
             try:
                 if V.strip().replace(".", "").replace(
@@ -224,15 +222,17 @@ class QuantumAnimation(Constants):
                         self.U_t = UnitaryOperator1D(np.copy(V_f))
                         self.V_latex = "%sk" % (self.V_latex) if V_f[0] > 0\
                                        else " %sk" % (self.V_latex)
+                    self.V_params = {}
+                    self.V_base = None
                 else:
-                    V_name, V_latex, V_sym, V_f\
-                            = convert_to_function(V, scale_by_k=True)
-                    # tmp = np.complex((V_f(2.)))
-                    self.V = V_f
-                    self.V_x = scale(V_f(self.x), 15)
-                    self.V_name = V_name
-                    self.V_latex = V_latex
-                    self.U_t = UnitaryOperator1D(V_f)
+                    f = FunctionRtoR(V, "x")
+                    self.V = lambda x: f(x, *f.get_tupled_default_values())
+                    self.V_x = scale(self.V(self.x), 15)
+                    self.V_name = str(f)
+                    self.V_latex = "$" + f.multiply_latex_string("k") + "$"
+                    self.U_t = UnitaryOperator1D(self.V)
+                    self.V_base = f
+                    self.V_params = f.get_enumerated_default_values()
             except (TypeError, AttributeError,
                     SyntaxError, ValueError, NameError) as E:
                 print(E)
@@ -442,9 +442,10 @@ class QuantumAnimation(Constants):
         Given an energy eigenvalue, set the wavefunction
         to the corresponding energy eigenstate. Note that
         it is assumed that the eigenstates are sorted in conjunction
-        with the energy eigenenergies from lowest to highest.
+        with their energies from lowest to highest.
         """
-        energy_range = self.U_t.energy_eigenvalues[-1] - self.U_t.energy_eigenvalues[0]
+        energy_range = 8*scale_y*self.U_t._scale
+        # energy_range = self.U_t.energy_eigenvalues[-1] - self.U_t.energy_eigenvalues[0]
         for n, eigval in enumerate(self.U_t.energy_eigenvalues):
             if np.abs(eigval - energy) < energy_range/100:
                 self.psi.x = self.U_t.energy_eigenstates.T[n]
@@ -454,11 +455,6 @@ class QuantumAnimation(Constants):
                     str(np.round(np.real(eigval), 1)), n)
                 self._msg_i = 50
                 return
-        pass
-        # TODO: Implement a binary search to find where this eigenstate
-        # is, or see if there is already a builtin numpy function
-        # (A simple "in" will not work, since the energies are floats).
-        # After this, set the wavefunction to the eigenstate.
 
     def lower_energy_eigenstate(self, *args) -> None:
         """
@@ -498,7 +494,7 @@ class QuantumAnimation(Constants):
         Measure the position. This collapses the wavefunction
         to the most probable position eigenstate.
         """
-        x = self.psi.set_to_eigenstate(self.x, self.identity_matrix)
+        x = self.psi.set_to_eigenstate(self.x, self.identity_matrix, smear=True)
         self._msg = "Position x = %s" % (str(np.round(x, 3)))
         self._msg_i = 50
         self.update_expected_energy_level()
