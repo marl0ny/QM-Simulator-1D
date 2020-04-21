@@ -7,7 +7,7 @@ by Paul Falstad and Quantum Bound States by PhET Colorado,
 both originally written in Java.
 """
 import numpy as np
-from qm import UnitaryOperator1D
+from qm import UnitaryOperator1D, Wavefunction1D
 from qm.constants import Constants
 from matplotlib.backends import backend_tkagg
 from animation import QuantumAnimation, scale
@@ -308,75 +308,6 @@ class App(QuantumAnimation):
                                              padx=(10, 10)
                                              )
 
-        # Clear wavefunction button
-        b3 = tk.Button(self.window,
-                       text='Clear Wavefunction',
-                       command=self.clear_wavefunction
-                       )
-        self.clear_wavefunction_button = b3
-        self.clear_wavefunction_button.grid(row=12, column=3,
-                                            columnspan=2,
-                                            sticky=tk.W + tk.E,
-                                            padx=(10, 10)
-                                            )
-
-        # Drop down for preset potentials
-        self.potential_menu_dict = {
-            "Infinite Square Well": "0",
-            "Simple Harmonic Oscillator": "x**2/2",
-            # "Potential Barrier": "10*rect(32*x)",
-            "Potential Well": "-rect(4*x)/2",
-            # "Potential Well and Barrier":
-            # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
-            # "Coulomb": "-1/(100*sqrt(x**2))",
-            "Double Well":
-                "(1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4)))/10",
-            "Triangular Well": "sqrt(x**2)"
-            }
-        self.potential_menu_string = tk.StringVar(self.window)
-        self.potential_menu_string.set("Choose Preset Potential V(x)")
-        self.previous_potential_menu_string = "Choose Preset Potential V(x)"
-        self.potential_menu = tk.OptionMenu(
-            self.window,
-            self.potential_menu_string,
-            *tuple(key for key in self.potential_menu_dict),
-            command=self.update_potential_by_preset
-            )
-        self.potential_menu.grid(row=13, column=3,
-                                 sticky=tk.W + tk.E,
-                                 padx=(10, 10)
-                                )
-
-        # Potential function entry field
-        self.enter_potential_label = tk.Label(
-                self.window, text="Enter Potential V(x)")
-        self.enter_potential_label.grid(
-            row=14,
-            column=3,
-            sticky=tk.W + tk.E + tk.S,
-            padx=(10, 10))
-        self.enter_potential = tk.Entry(self.window)
-        self.enter_potential.bind("<Return>", self.update_potential_by_name)
-        self.enter_potential.grid(row=15, column=3, columnspan=3,
-                                  sticky=tk.W + tk.E + tk.N + tk.S,
-                                  padx=(10, 10)
-                                 )
-        b4 = tk.Button(self.window,
-                       text='OK',
-                       command=self.update_potential_by_name)
-        self.update_potential_button = b4
-        self.update_potential_button.grid(row=16, column=3,
-                                          columnspan=2,
-                                          sticky=tk.N + tk.W + tk.E,
-                                          padx=(10, 10)
-                                          )
-        self.sliders2 = []
-        self.sliders2_count = 0
-        self.slider_speed_label = None
-        self.slider_speed = None
-        self.quit_button = None
-        self.set_widgets_after_enter_potential()
-
         # Right click Menu
         self.menu = tk.Menu(self.window, tearoff=0)
         self.menu.add_command(label="Measure Position",
@@ -405,6 +336,35 @@ class App(QuantumAnimation):
         self.window.bind("<Down>", self.lower_energy_eigenstate)
         # self.window.bind("<Control>", lambda *arg: print("ctrl printed"))
 
+        self.sliders1 = []
+        self.sliders1_count = -1
+        self.sliders2 = []
+        self.sliders2_count = -1
+        self.clear_wavefunction_button = None
+        self.potential_menu_dict = {
+            "Infinite Square Well": "0",
+            "Simple Harmonic Oscillator": "x**2/2",
+            # "Potential Barrier": "10*rect(32*x)",
+            "Potential Well": "-rect(4*x)/2",
+            # "Potential Well and Barrier":
+            # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
+            # "Coulomb": "-1/(100*sqrt(x**2))",
+            "Double Well":
+                "(1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4)))/10",
+            "Triangular Well": "sqrt(x**2)"
+            }
+        self.potential_menu_string = tk.StringVar(self.window)
+        self.potential_menu_string.set("Choose Preset Potential V(x)")
+        self.previous_potential_menu_string = "Choose Preset Potential V(x)"
+        self.potential_menu = None
+        self.enter_potential_label = None
+        self.enter_potential = None
+        self.update_potential_button = None
+        self.slider_speed_label = None
+        self.slider_speed = None
+        self.quit_button = None
+        self.set_widgets_after_enter_wavefunction(init_call=True)
+
         self.animation_loop()
 
         # Store the animation speed before a pause
@@ -415,71 +375,219 @@ class App(QuantumAnimation):
 
         # self.toggle_energy_levels()
 
-    def set_widgets_after_enter_potential(self) -> None:
-        # Update potential button
-        for slider in self.sliders2:
+    def destroy_wavefunction_sliders(self) -> None:
+        """
+        Destroy the wavefunction parameter sliders.
+        """
+        for slider in self.sliders1:
             slider.destroy()
-        self.sliders2 = []
-        # if self.update_potential_button is not None:
-        #     self.update_potential_button.destroy()
-        #     self.update_potential_button = None
-        if self.slider_speed_label is not None:
-            self.slider_speed_label.destroy()
-            self.slider_speed_label = None
-        if self.slider_speed is not None:
-            self.slider_speed.destroy()
-            self.slider_speed = None
-        if self.quit_button is not None:
-            self.quit_button.destroy()
-            self.quit_button = None
-        self.sliders2_count = 0
-        if len(self.V_params) > 0:
-            for i in range(len(self.V_params)):
-                self.sliders2.append(
+        self.sliders1 = []
+        self.sliders1_count = 0
+
+    def set_widgets_after_enter_wavefunction(self, init_call=False) -> None:
+        """
+        Set the widgets after the enter wavefunction button.
+        """
+        prev_sliders1_count = self.sliders1_count
+        self.destroy_wavefunction_sliders()
+
+        if len(self.psi_params) > 0:
+            for i in range(len(self.psi_params)):
+                self.sliders1.append(
                     tk.Scale(self.window, 
-                             label="change %s: " % str(self.V_params[i][0]),
+                             label="change %s: " % str(self.psi_params[i][0]),
                              from_=-2, to=2,
                              resolution=0.01,
                              orient=tk.HORIZONTAL,
                              length=200,
-                             command=self.update_potential_by_slider
+                             command=self.update_wavefunction_by_slider
                             )
                 )
-                self.sliders2[i].grid(
-                    row=17 + self.sliders2_count, 
+                self.sliders1[i].grid(
+                    row=12 + self.sliders1_count, 
                     column=3, columnspan=2, 
                     sticky=tk.N+tk.W+tk.E, padx=(10, 10)
                 )
-                self.sliders2[i].set(self.V_params[i][1])
-                self.sliders2_count += 1
-        # self.update_potential_button.destroy()
-        # self.slider_speed_label.destroy()
-        # self.slider_speed.destroy()
-        # self.quit_button.destroy()
+                self.sliders1[i].set(self.psi_params[i][1])
+                self.sliders1_count += 1
 
+        if prev_sliders1_count != self.sliders1_count:
+            self.set_widgets_after_wavefunction_sliders(init_call)
+
+    def set_widgets_after_wavefunction_sliders(self, init_call) -> None:
+        """
+        Set widgets after wavefunction sliders.
+        """
+        # Clear wavefunction button
+        if self.clear_wavefunction_button is not None:
+            self.clear_wavefunction_button.destroy()
+        b3 = tk.Button(self.window,
+                       text='Clear Wavefunction',
+                       command=self.clear_wavefunction
+                       )
+        self.clear_wavefunction_button = b3
+        self.clear_wavefunction_button.grid(row=12 + self.sliders1_count, 
+                                            column=3,
+                                            columnspan=2,
+                                            sticky=tk.W + tk.E,
+                                            padx=(10, 10)
+                                            )
+        # Drop down for preset potentials
+        if self.potential_menu is not None:
+            self.potential_menu.destroy()
+        self.potential_menu = tk.OptionMenu(
+            self.window,
+            self.potential_menu_string,
+            *tuple(key for key in self.potential_menu_dict),
+            command=self.update_potential_by_preset
+            )
+        self.potential_menu.grid(row=13 + self.sliders1_count,
+                                 column=3,
+                                 sticky=tk.W + tk.E,
+                                 padx=(10, 10)
+                                )
+
+        # Potential function entry field
+        if self.enter_potential_label is not None:
+            self.enter_potential_label.destroy()
+        self.enter_potential_label = tk.Label(
+                self.window, text="Enter Potential V(x)")
+        self.enter_potential_label.grid(
+            row=14 + self.sliders1_count,
+            column=3,
+            sticky=tk.W + tk.E + tk.S,
+            padx=(10, 10))
+        self.enter_potential = tk.Entry(self.window)
+        self.enter_potential.bind("<Return>", self.update_potential_by_name)
+        self.enter_potential.grid(row=15 + self.sliders1_count, 
+                                  column=3, columnspan=3,
+                                  sticky=tk.W + tk.E + tk.N + tk.S,
+                                  padx=(10, 10)
+                                 )
+        if self.update_potential_button is not None:
+            self.update_potential_button.destroy()
+        b4 = tk.Button(self.window,
+                       text='OK',
+                       command=self.update_potential_by_name)
+        self.update_potential_button = b4
+        self.update_potential_button.grid(row=16 + self.sliders1_count, 
+                                          column=3,
+                                          columnspan=2,
+                                          sticky=tk.N + tk.W + tk.E,
+                                          padx=(10, 10)
+                                          )
+        if not init_call:
+            # TODO: refactor the code within this if block,
+            # which deals with resetting potential function parameter
+            # sliders after the wavefunction parameter sliders are
+            # changed.
+            params = [self.sliders2[i].get() 
+                    for i in range(len(self.sliders2))]
+            self.destroy_potential_sliders()
+            self.set_potential_sliders()
+            self.set_widgets_after_potential_sliders()
+            if len(params) != 0:
+                for i in range(len(params)):
+                    self.sliders2[i].set(params[i])
+                self.V = lambda x: self.V_base(x, *params)
+                self.V_x = scale(self.V(self.x), 15)
+                self.U_t = UnitaryOperator1D(self.V)
+                self.lines[4].set_ydata(self.V_x/self.scale_y)
+                self.update_energy_levels()
+        else:
+            self.set_widgets_after_enter_potential()
+
+    def set_widgets_after_enter_potential(self) -> None:
+        """
+        Set the widgets after the enter potential button.
+        """
+        prev_sliders2_count = self.sliders2_count
+        self.destroy_potential_sliders()
+        if len(self.V_params) > 0:
+            self.set_potential_sliders()
+
+        if prev_sliders2_count != self.sliders2_count:
+            self.set_widgets_after_potential_sliders()
+
+    def destroy_potential_sliders(self) -> None:
+        """
+        Destoy the potential sliders
+        """
+        for slider in self.sliders2:
+            slider.destroy()
+        self.sliders2 = []
+        self.sliders2_count = 0
+
+    def set_potential_sliders(self) -> None:
+        """
+        Set the sliders for the parameters that control
+        the potential function.
+        """
+        for i in range(len(self.V_params)):
+            self.sliders2.append(
+                tk.Scale(self.window, 
+                            label="change %s: " % str(self.V_params[i][0]),
+                            from_=-2, to=2,
+                            resolution=0.01,
+                            orient=tk.HORIZONTAL,
+                            length=200,
+                            command=self.update_potential_by_slider
+                        )
+            )
+            self.sliders2[i].grid(
+                row=17 + self.sliders2_count + self.sliders1_count, 
+                column=3, columnspan=2, 
+                sticky=tk.N+tk.W+tk.E, padx=(10, 10)
+            )
+            self.sliders2[i].set(self.V_params[i][1])
+            self.sliders2_count += 1
+
+    def set_widgets_after_potential_sliders(self) -> None:
+        """
+        Set the widgets after the parameter sliders for the potential
+        """
+        total_sliders_count = self.sliders2_count + self.sliders1_count
         # Animation speed slider
+        if self.slider_speed_label is not None:
+            self.slider_speed_label.destroy()
         self.slider_speed_label = tk.LabelFrame(
                 self.window, text="Animation Speed")
-        self.slider_speed_label.grid(row=17 + self.sliders2_count, 
-                                     column=3, padx=(10, 10))
-
+        self.slider_speed_label.grid(row=17 + total_sliders_count, 
+                                        column=3, padx=(10, 10))
+        if self.slider_speed is not None:
+            self.slider_speed.destroy()
         self.slider_speed = tk.Scale(self.slider_speed_label,
-                                     from_=0, to=8,
-                                     orient=tk.HORIZONTAL,
-                                     length=200,
-                                     command=self.change_animation_speed
-                                     )
-        self.slider_speed.grid(row=18 + self.sliders2_count,
-                               column=3, padx=(10, 10))
+                                        from_=0, to=8,
+                                        orient=tk.HORIZONTAL,
+                                        length=200,
+                                        command=self.change_animation_speed
+                                        )
+        self.slider_speed.grid(row=18 + total_sliders_count,
+                                column=3, padx=(10, 10))
         self.slider_speed.set(1)
-
         # Quit button
+        if self.quit_button is not None:
+            self.quit_button.destroy()
         self.quit_button = tk.Button(
                 self.window, text='QUIT', command=self.quit)
-        self.quit_button.grid(row=19  + self.sliders2_count, 
-                              column=3)
+        self.quit_button.grid(row=19  + total_sliders_count, 
+                                column=3)
+
+    def update_wavefunction_by_slider(self, *event: tk.Event) -> None:
+        """
+        Update the wavefunction by sliders.
+        """
+        params = [self.sliders1[i].get() 
+                  for i in range(len(self.sliders1))]
+        psi_func = lambda x: self.psi_base(x, *params)
+        self.psi = Wavefunction1D(psi_func)
+        self.psi.normalize()
+        self.update_expected_energy_level()
 
     def update_potential_by_slider(self, *event: tk.Event) -> None:
+        """
+        Update the potential by sliders.
+        """
         if not self.potential_is_reshaped:
             if np.amax(self.V_x > 0):
                 self.scale_y = np.amax(self.V_x[1:-2])/(
@@ -572,6 +680,7 @@ class App(QuantumAnimation):
         """
         self.set_wavefunction(self.enter_function.get())
         self.update_expected_energy_level()
+        self.set_widgets_after_enter_wavefunction()
 
     def _update_wavefunction_by_sketch(self, x: float, y: float) -> None:
         """

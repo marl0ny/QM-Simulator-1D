@@ -150,6 +150,8 @@ class QuantumAnimation(Constants):
                              self.N)
 
         # the parameters
+        self.psi_base = None
+        self.psi_params = {}
         self.V_base = None
         self.V_params = {}
 
@@ -176,14 +178,17 @@ class QuantumAnimation(Constants):
                     self._msg_i = 45
                     if normalize:
                         self.psi.normalize()
+                    self.psi_base = None
+                    self.psi_params = {}
                 else:
-                    psi_name, psi_latex, psi_sym, psi_f = convert_to_function(
-                        psi)
-                    # tmp = np.complex((psi_f(2.)))
-                    self.psi_name = psi_name
-                    self.psi_latex = psi_latex
-                    self.psi = Wavefunction1D(psi_f)
-                    self._msg = "$\psi(x, 0) =$ %s" % self.psi_latex
+                    f = FunctionRtoR(psi, "x")
+                    self.psi_base = f
+                    psi_func = lambda x: f(x, *f.get_tupled_default_values())
+                    self.psi_name = str(f)
+                    self.psi_latex = "$" + f.latex_repr + "$"
+                    self.psi = Wavefunction1D(psi_func)
+                    self.psi_params = f.get_enumerated_default_values()
+                    self._msg = r"$\psi(x, 0) =$ %s" % self.psi_latex
                     self._msg_i = 45
                     if normalize:
                         self.psi.normalize()
@@ -191,6 +196,8 @@ class QuantumAnimation(Constants):
                     SyntaxError, ValueError, NameError) as E:
                 print(E)
         elif isinstance(psi, np.ndarray):
+            # self.psi_base = None
+            # self.psi_params = {}
             self.psi = Wavefunction1D(psi)
             self.psi_name = "wavefunction"
             self.psi_latex = "$\psi(x)$"
@@ -237,6 +244,8 @@ class QuantumAnimation(Constants):
                     SyntaxError, ValueError, NameError) as E:
                 print(E)
         elif isinstance(V, np.ndarray):
+            self.V_params = {}
+            self.V_base = None
             self.V = None
             self.V_x = scale(V, 15)
             self.V_name = "V(x)"
@@ -908,7 +917,7 @@ class QuantumAnimation(Constants):
         if self.ticks > 1:
             self.fps_total += self.fps
         self.avg_fps = int(self.fps_total/(self.ticks))
-        if self.ticks % 60:
+        if self.ticks % 60 == 0:
             pass
             # print_to_terminal("fps: %d, avg fps: %d" % (
             #     self.fps, self.avg_fps))
@@ -932,27 +941,28 @@ class QuantumAnimation(Constants):
                 self.U_t.energy_eigenvalues,
                 self.U_t.energy_eigenstates
                 )
-            self.lines[5].set_text(
-                "t = %f\n"
-                # "fps = %i\n"
-                # "avg_fps = %i\n"
-                "<x> = %.2f\n"
-                "<p> = %.2f\n"
-                "<E> = %.0f\n"
-                "σₓ = %.2f\n"
-                "σₚ = %.2f\n"
-                "σᴇ = %.0f" % (
-                    self._t,
-                    # self.fps,
-                    # self.avg_fps,
-                    x_mean,
-                    p_mean,
-                    E_mean,
-                    x_sigma,
-                    p_sigma,
-                    E_sigma
+            if self.ticks % 5 == 0:
+                self.lines[5].set_text(
+                    "t = %f\n"
+                    # "fps = %i\n"
+                    # "avg_fps = %i\n"
+                    "<x> = %.2f\n"
+                    "<p> = %.2f\n"
+                    "<E> = %.0f\n"
+                    "σₓ = %.2f\n"
+                    "σₚ = %.2f\n"
+                    "σᴇ = %.0f" % (
+                        self._t,
+                        # self.fps,
+                        # self.avg_fps,
+                        x_mean,
+                        p_mean,
+                        E_mean,
+                        x_sigma,
+                        p_sigma,
+                        E_sigma
+                        )
                     )
-                )
 
         return self.lines
 
