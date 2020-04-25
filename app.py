@@ -152,6 +152,9 @@ class App(QuantumAnimation):
         self.canvas.get_tk_widget().bind(
                 "<ButtonRelease-1>",
                 self.sketch)
+        self.canvas.get_tk_widget().bind(
+                "<MouseWheel>",
+                self.mouse_wheel_handler)
 
         # Thanks to StackOverflow user user1764386 for
         # giving a way to change the background colour of a plot.
@@ -605,6 +608,31 @@ class App(QuantumAnimation):
         self.V_x = scale(self.V(self.x), 15)
         self.U_t = UnitaryOperator1D(self.V)
         # Re-draw the potential
+        self.lines[4].set_ydata(self.V_x/self.scale_y)
+        self.update_energy_levels()
+
+    def mouse_wheel_handler(self, event: tk.Event) -> None:
+        """
+        Handle mouse wheel input. When the mouse is over the canvas
+        this controls how the drawing of the potential is scaled.
+        """
+        if not self.potential_is_reshaped:
+            if np.amax(self.V_x > 0):
+                self.scale_y = np.amax(self.V_x[1:-2])/(
+                    self.bounds[-1]*0.95)
+            elif np.amax(self.V_x < 0):
+                self.scale_y = np.abs(np.amin(self.V_x[1:-2]))/(
+                    self.bounds[-1]*0.95)
+            else:
+                self.scale_y = 1.0
+            self.potential_is_reshaped = True
+        if event.delta == -120 or event.num == 5:
+            self.scale_y *= 1.1
+        elif event.delta == 120 or event.num == 4:
+            self.scale_y *= 0.9
+        V_max = self.bounds[-1]*0.95*self.scale_y*self._scale
+        self.lines[9].set_text("E = %.0f" % (V_max))
+        self.lines[10].set_text("E = %.0f" % (-V_max))
         self.lines[4].set_ydata(self.V_x/self.scale_y)
         self.update_energy_levels()
 
