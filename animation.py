@@ -37,7 +37,8 @@ def scale(x: np.ndarray, scale_val: float) -> np.ndarray:
                scale_val*x/absmaxnegval
     return x
 
-def ordinate(number_string):
+
+def ordinate(number_string: str) -> str:
     """
     Turn numbers of the form '1' into '1st',
     '2' into '2nd', and so on.
@@ -59,6 +60,50 @@ def ordinate(number_string):
         return number_string + "rd"
     else:
         return number_string + "th"
+
+
+def rescale_array(x_prime: np.ndarray, 
+                  x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """
+    Given an array x that maps to an array y, and array x
+    that is transformed to x_prime, apply this same transform
+    to y.
+    """
+    y_prime = np.zeros([len(x)])
+    contains_value = np.zeros([len(x)], np.int32)
+    for i in range(len(x)):
+        index = 0
+        min_val = abs(x[i] - x_prime[0])
+        for j in range(1, len(x_prime)):
+            if abs(x[i] - x_prime[j]) < min_val:
+                index = j
+                min_val = abs(x[i] - x_prime[j])
+        if min_val < (x[1] - x[0]):
+            if contains_value[index] == 0:
+                y_prime[index] = y[i]
+                contains_value[index] = 1
+            else:
+                contains_value[index] += 1
+                y_prime[index] = (y[i]/contains_value[index]
+                                  + y_prime[index]*(
+                                  contains_value[index] - 1.0)/
+                                  contains_value[index])
+    i = 0
+    while i < len(y_prime):
+        if (i + 1 < len(y_prime) 
+            and contains_value[i+1] == 0
+            ):
+            j = i + 1
+            while (contains_value[j] == 0 
+                   and j < len(y_prime) - 1
+                   ):
+                j += 1
+            for k in range(i+1, j):
+                y_prime[k] = y_prime[i] + ((k - i)/(j - i))*(
+                             y_prime[j] - y_prime[i])
+            i = j - 1
+        i += 1
+    return y_prime
 
 
 class QuantumAnimation(Constants):
@@ -154,6 +199,14 @@ class QuantumAnimation(Constants):
         self.psi_params = {}
         self.V_base = None
         self.V_params = {}
+
+        FunctionRtoR.add_function("arg", lambda theta: np.exp(2.0j*np.pi*theta))
+        FunctionRtoR.add_function("ees", lambda n, x:
+                                  self.get_energy_eigenstate(int(n)) 
+                                  if np.array_equal(self.x, x) else
+                                  rescale_array(x, self.x, 
+                                  np.real(self.get_energy_eigenstate(int(n))))
+                                  )
 
         self.set_wavefunction(function)
 
@@ -357,7 +410,7 @@ class QuantumAnimation(Constants):
             else:
                 p0 = -((2*np.pi*self.hbar/self.L)*
                        ((self.N - 1)/(2*self.dx*self.N)))
-            print(x)
+            # print(x)
             p_tick = p0 + p_range*((float(str(x)) - self.x[0])/
                                    (self.x[-1] - self.x[0]))
             p_tick = np.round(p_tick, 1)
@@ -480,6 +533,17 @@ class QuantumAnimation(Constants):
             str(np.round(np.real(E), 1)), n)
         self._msg_i = 50
         self.update_expected_energy_level()
+
+    def get_energy_eigenstate(self, n) -> None:
+        """
+        Get an eigenstate, given the energy level.
+        """
+        n -= 1
+        self._set_eigenstates()
+        if n < 0 or n > self.N:
+            raise IndexError
+        psi = np.copy(self.U_t.energy_eigenstates.T[n])
+        return psi
 
     def  higher_energy_eigenstate(self, *args) -> None:
         """

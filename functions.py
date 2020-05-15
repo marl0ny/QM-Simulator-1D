@@ -117,6 +117,7 @@ class FunctionRtoR:
                                except for the main variable.
     """
 
+    module_list = ["numpy", {"rect": rect, "noise": noise}]
     # Private Attributes:
     # _symbolic_func [sympy.basic.Basic]: symbol function
     # _lambda_func [sympy.Function]: lamba function
@@ -132,7 +133,6 @@ class FunctionRtoR:
         # Used for lambdify from sympy to parse input.
         if isinstance(param, str):
             param = parse_expr(param)
-        module_list = ["numpy", {"rect": rect, "noise": noise}]
         self._symbolic_func = parse_expr(function_name)
         symbol_set = self._symbolic_func.free_symbols
         if abc.k in symbol_set:
@@ -149,7 +149,7 @@ class FunctionRtoR:
         var_list.extend(symbol_list)
         self.symbols = var_list
         self._lambda_func = lambdify(
-            self.symbols, self._symbolic_func, modules=module_list)
+            self.symbols, self._symbolic_func, modules=self.module_list)
 
     def __call__(self, x: Union[np.array, float],
                  *args: float) -> np.array:
@@ -207,28 +207,9 @@ class FunctionRtoR:
         return tuple([enum_defaults[i][1] for 
                       i in range(len(self.parameters))])
 
-    def derivative(self) -> None:
+    @staticmethod
+    def add_function(function_name, new_function) -> None:
         """
-        Mutate this function into its derivative.
+        """
+        FunctionRtoR.module_list[1][function_name] = new_function
 
-        >>> f = FunctionRtoR("a*sin(k*x) + d", abc.x)
-        >>> f.derivative()
-        >>> str(f)
-        'a*k*cos(k*x)'
-        """
-        self._symbolic_func = diff(self._symbolic_func,
-                                   self.symbols[0])
-        self._reset_samesymbols()
-
-    def antiderivative(self) -> None:
-        """
-        Mutate this function into its antiderivative.
-
-        >>> f = FunctionRtoR("a*sin(k*x) + d", abc.x)
-        >>> f.antiderivative()
-        >>> str(f)
-        'a*Piecewise((-cos(k*x)/k, Ne(k, 0)), (0, True)) + d*x'
-        """
-        self._symbolic_func = integrate(self._symbolic_func,
-                                        self.symbols[0])
-        self._reset_samesymbols()

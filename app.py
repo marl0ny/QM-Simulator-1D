@@ -155,6 +155,12 @@ class App(QuantumAnimation):
         self.canvas.get_tk_widget().bind(
                 "<MouseWheel>",
                 self.mouse_wheel_handler)
+        self.canvas.get_tk_widget().bind(
+                "<Button-4>",
+                self.mouse_wheel_handler)
+        self.canvas.get_tk_widget().bind(
+                "<Button-5>",
+                self.mouse_wheel_handler)
 
         # Thanks to StackOverflow user user1764386 for
         # giving a way to change the background colour of a plot.
@@ -347,7 +353,11 @@ class App(QuantumAnimation):
         self.potential_menu_dict = {
             "Infinite Square Well": "0",
             "Simple Harmonic Oscillator": "x**2/2",
+            # "Simple Harmonic Oscillators": 
+            #     "Sum(rect(int(4*l)*(x+0.8725 - j/int(4*l)))*"
+            #     "(2*(x+0.8725 - j/int(4*l)))**2, (j, 1, 10))",
             # "Potential Barrier": "10*rect(32*x)",
+            # "Many Wells": "Sum(rect(150*(x-i/10+0.5))/10, (i, 0, 10))", 
             "Potential Well": "-rect(4*x)/2",
             # "Potential Well and Barrier":
             # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
@@ -514,7 +524,7 @@ class App(QuantumAnimation):
 
     def destroy_potential_sliders(self) -> None:
         """
-        Destoy the potential sliders
+        Destroy the potential sliders
         """
         for slider in self.sliders2:
             slider.destroy()
@@ -529,13 +539,13 @@ class App(QuantumAnimation):
         for i in range(len(self.V_params)):
             self.sliders2.append(
                 tk.Scale(self.window, 
-                            label="change %s: " % str(self.V_params[i][0]),
-                            from_=-2, to=2,
-                            resolution=0.01,
-                            orient=tk.HORIZONTAL,
-                            length=200,
-                            command=self.update_potential_by_slider
-                        )
+                         label="change %s: " % str(self.V_params[i][0]),
+                         from_=-2, to=2,
+                         resolution=0.01,
+                         orient=tk.HORIZONTAL,
+                         length=200,
+                         command=self.update_potential_by_slider
+                         )
             )
             self.sliders2[i].grid(
                 row=17 + self.sliders2_count + self.sliders1_count, 
@@ -560,7 +570,7 @@ class App(QuantumAnimation):
         if self.slider_speed is not None:
             self.slider_speed.destroy()
         self.slider_speed = tk.Scale(self.slider_speed_label,
-                                        from_=0, to=8,
+                                        from_=0, to=10,
                                         orient=tk.HORIZONTAL,
                                         length=200,
                                         command=self.change_animation_speed
@@ -826,6 +836,8 @@ class App(QuantumAnimation):
                 name == "Potential Well and Barrier"):
                 self.set_wavefunction("0")
                 self.set_unitary(self.potential_menu_dict[name])
+                # elif (name == "0"):
+                # self.set_unitary(self.potential_menu_dict[name])
             else:
                 self.set_unitary(self.potential_menu_dict[name])
             self.previous_potential_menu_string = name
