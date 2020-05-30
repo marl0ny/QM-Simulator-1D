@@ -105,10 +105,9 @@ def multiplies_var(main_var: basic.Basic, arb_var: basic.Basic,
                 (arg is not main_var)])
 
 
-class FunctionRtoR:
+class Function:
     """
-    A callable function class that maps a single variable,
-    as well as any number of parameters, to another variable.
+    A function class of the form y = f(x; a, b, c...).
 
     Attributes:
     latex_repr [str]: The function as a LaTeX string.
@@ -127,12 +126,14 @@ class FunctionRtoR:
         """
         The initializer. The parameter must be a
         string representation of a function, and it needs to
-        be a function of x.
+        be at least a function of x.
         """
         # Dictionary of modules and user defined functions.
         # Used for lambdify from sympy to parse input.
         if isinstance(param, str):
             param = parse_expr(param)
+        if function_name == "x":
+            function_name = "1.0*x"
         self._symbolic_func = parse_expr(function_name)
         symbol_set = self._symbolic_func.free_symbols
         if abc.k in symbol_set:
@@ -211,5 +212,5 @@ class FunctionRtoR:
     def add_function(function_name, new_function) -> None:
         """
         """
-        FunctionRtoR.module_list[1][function_name] = new_function
+        Function.module_list[1][function_name] = new_function
 

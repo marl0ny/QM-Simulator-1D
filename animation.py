@@ -8,7 +8,7 @@ mode and typing command line arguments.
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from functions import rect, convert_to_function, FunctionRtoR
+from functions import rect, convert_to_function, Function
 from qm.constants import Constants
 from qm import Wavefunction1D, UnitaryOperator1D
 from time import perf_counter
@@ -200,13 +200,13 @@ class QuantumAnimation(Constants):
         self.V_base = None
         self.V_params = {}
 
-        FunctionRtoR.add_function("arg", lambda theta: np.exp(2.0j*np.pi*theta))
-        FunctionRtoR.add_function("ees", lambda n, x:
-                                  self.get_energy_eigenstate(int(n)) 
-                                  if np.array_equal(self.x, x) else
-                                  rescale_array(x, self.x, 
-                                  np.real(self.get_energy_eigenstate(int(n))))
-                                  )
+        Function.add_function("arg", lambda theta: np.exp(2.0j*np.pi*theta))
+        Function.add_function("ees", lambda n, x:
+                               self.get_energy_eigenstate(int(n)) 
+                               if np.array_equal(self.x, x) else
+                               rescale_array(x, self.x, 
+                               np.real(self.get_energy_eigenstate(int(n))))
+                               )
 
         self.set_wavefunction(function)
 
@@ -216,8 +216,7 @@ class QuantumAnimation(Constants):
         self._init_plots()
 
     def set_wavefunction(self, psi, normalize=True):
-        """Parse input to set
-        the wavefunction attributes.
+        """Parse input to set the wavefunction attributes.
         """
         if isinstance(psi, str):
             try:
@@ -234,7 +233,8 @@ class QuantumAnimation(Constants):
                     self.psi_base = None
                     self.psi_params = {}
                 else:
-                    f = FunctionRtoR(psi, "x")
+                    psi = psi.replace("^", "**")
+                    f = Function(psi, "x")
                     self.psi_base = f
                     psi_func = lambda x: f(x, *f.get_tupled_default_values())
                     self.psi_name = str(f)
@@ -260,8 +260,7 @@ class QuantumAnimation(Constants):
             print("Unable to parse input")
 
     def set_unitary(self, V):
-        """Parse input and
-        set the unitary operator attributes.
+        """Parse input and set the unitary operator attributes.
         This also sets up the potential function
         attributes in the process.
         """
@@ -285,7 +284,8 @@ class QuantumAnimation(Constants):
                     self.V_params = {}
                     self.V_base = None
                 else:
-                    f = FunctionRtoR(V, "x")
+                    V = V.replace("^", "**")
+                    f = Function(V, "x")
                     self.V = lambda x: f(x, *f.get_tupled_default_values())
                     self.V_x = scale(self.V(self.x), 15)
                     self.V_name = str(f)
@@ -540,12 +540,14 @@ class QuantumAnimation(Constants):
         """
         n -= 1
         self._set_eigenstates()
-        if n < 0 or n > self.N:
+        if n < 0:
+            raise IndexError("energy level enumeration starts from 1.")
+        if n >= self.N:
             raise IndexError
         psi = np.copy(self.U_t.energy_eigenstates.T[n])
         return psi
 
-    def  higher_energy_eigenstate(self, *args) -> None:
+    def higher_energy_eigenstate(self, *args) -> None:
         """
         Go to a higher energy eigenstate
         """
@@ -718,10 +720,9 @@ class QuantumAnimation(Constants):
             self.lines.pop()
         self._show_energy_levels = not self._show_energy_levels
 
-    def toggle_expectation_values(self):
+    def toggle_expectation_values(self) -> None:
         """
-        toggle whether to show expectation values
-        or not
+        Toggle expectation values.
         """
         if self._show_exp_val:
             self.lines[5].set_text(self._main_msg)
@@ -740,10 +741,8 @@ class QuantumAnimation(Constants):
 
     def _init_plots(self):
         """
-        Initialize the animation.
-        In this method we:
-        - initialize the required matplotlib objects
-        - determine the boundaries of our plot
+        Start the animation, in which the required matplotlib objects
+        are initialized and the plot boundaries are determined.
         """
 
         # Please note, if you change attributes L and x0 in the
@@ -783,7 +782,7 @@ class QuantumAnimation(Constants):
         # Note that the number naming of the variables is not in any
         # logical order.
         # This is due to oversight.
-        # TODO: Fix the ordering
+        # TODO: Use a better naming system.
 
         # line0: Text info for |\psi(x)|^2 or |\psi(x)|
         # line1: |\psi(x)| or |\psi(x)|^2
@@ -935,7 +934,7 @@ class QuantumAnimation(Constants):
 
         self._main_msg = self.lines[5].get_text()
 
-    def _animate(self, i):
+    def _animate(self, i: int) -> list:
         """Produce a single frame of animation.
         This of course involves advancing the wavefunction
         in time using the unitary operator.
@@ -1030,29 +1029,28 @@ class QuantumAnimation(Constants):
 
         return self.lines
 
-    def animation_loop(self):
+    def animation_loop(self) -> None:
         """Produce all frames of animation.
         """
-        self.main_animation = animation.FuncAnimation\
-                (self.figure, self._animate, blit=True,
-                 interval=1
-                 )
+        self.main_animation = animation.FuncAnimation(
+            self.figure, self._animate, blit=True,
+            interval=1)
 
-    def get_fpi(self):
+    def get_fpi(self) -> int:
         """Get the number of time evolutions per animation
         frame"""
         return self.fpi
 
-    def set_fpi(self, new_fpi):
+    def set_fpi(self, new_fpi: int) -> None:
         """Set the number of time evolutions per animation frame
         """
         self.fpi = new_fpi
 
-    def toggle_blit(self):
+    def toggle_blit(self) -> None:
         """
-        Toggle blit. This is used so that it is possible to
-        update the appearance of the plot title and axes, which would otherwise
-        be entirely static with blitting.
+        Enable or disable blit. This makes it possible to
+        update the plot title and axes, which would otherwise
+        be static with blit always enabled.
         """
         if self.main_animation._blit:
             self.main_animation._blit_clear(

@@ -353,18 +353,19 @@ class App(QuantumAnimation):
         self.potential_menu_dict = {
             "Infinite Square Well": "0",
             "Simple Harmonic Oscillator": "x**2/2",
-            # "Simple Harmonic Oscillators": 
-            #     "Sum(rect(int(4*l)*(x+0.8725 - j/int(4*l)))*"
-            #     "(2*(x+0.8725 - j/int(4*l)))**2, (j, 1, 10))",
             # "Potential Barrier": "10*rect(32*x)",
-            # "Many Wells": "Sum(rect(150*(x-i/10+0.5))/10, (i, 0, 10))", 
             "Potential Well": "-rect(4*x)/2",
             # "Potential Well and Barrier":
             # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
             # "Coulomb": "-1/(100*sqrt(x**2))",
             "Double Well":
                 "(1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4)))/10",
+            # "Double Well 2": "(1-rect(2*x)+rect(50*x)/10)/5",
+            # "Many Wells": "Sum(rect(150*b*(x-i/10+0.5))/60, (i, 0, 10))",
             "Triangular Well": "sqrt(x**2)"
+            # "Simple Harmonic Oscillators": 
+            #     "Sum(rect(int(4*l)*(x+0.8725 - j/int(4*l)))*"
+            #     "(2*(x+0.8725 - j/int(4*l)))**2, (j, 1, 10))",
             }
         self.potential_menu_string = tk.StringVar(self.window)
         self.potential_menu_string.set("Choose Preset Potential V(x)")
@@ -470,6 +471,8 @@ class App(QuantumAnimation):
             column=3,
             sticky=tk.W + tk.E + tk.S,
             padx=(10, 10))
+        if self.enter_potential is not None:
+            self.enter_potential.destroy()
         self.enter_potential = tk.Entry(self.window)
         self.enter_potential.bind("<Return>", self.update_potential_by_name)
         self.enter_potential.grid(row=15 + self.sliders1_count, 
@@ -626,6 +629,15 @@ class App(QuantumAnimation):
         Handle mouse wheel input. When the mouse is over the canvas
         this controls how the drawing of the potential is scaled.
         """
+        if event.delta == -120 or event.num == 5:
+            self.rescale_potential_graph(1.1)
+        elif event.delta == 120 or event.num == 4:
+            self.rescale_potential_graph(0.9)
+
+    def rescale_potential_graph(self, scale_y: float) -> None:
+        """
+        Rescale the graph of the potential
+        """
         if not self.potential_is_reshaped:
             if np.amax(self.V_x > 0):
                 self.scale_y = np.amax(self.V_x[1:-2])/(
@@ -636,10 +648,7 @@ class App(QuantumAnimation):
             else:
                 self.scale_y = 1.0
             self.potential_is_reshaped = True
-        if event.delta == -120 or event.num == 5:
-            self.scale_y *= 1.1
-        elif event.delta == 120 or event.num == 4:
-            self.scale_y *= 0.9
+        self.scale_y *= scale_y
         V_max = self.bounds[-1]*0.95*self.scale_y*self._scale
         self.lines[9].set_text("E = %.0f" % (V_max))
         self.lines[10].set_text("E = %.0f" % (-V_max))
@@ -753,9 +762,7 @@ class App(QuantumAnimation):
 
     def update_wavefunction_by_sketch(self, event: tk.Event) -> None:
         """
-        Update the wavefunction given mouse clicks
-        on to the canvas. Note that the animation
-        can still run if the wavefunction is changed.
+        Update the wavefunction using the mouse.
         """
         x, y = self.locate_mouse(event)
         self._update_wavefunction_by_sketch(x, y)
@@ -764,7 +771,7 @@ class App(QuantumAnimation):
 
     def update_wavefunction_to_eigenstate(self, event: tk.Event) -> None:
         """
-        Update the wavefunction to an eigenstate
+        Update the wavefunction to an eigenstate.
         """
         x, y = self.locate_mouse(event)
         if not self.potential_is_reshaped:
@@ -783,8 +790,8 @@ class App(QuantumAnimation):
     def update_wavefunction_by_sketch_while_paused(
             self, event: tk.Event) -> None:
         """
-        Update the wavefunction given mouse clicks
-        on to the canvas, and set the time evolution to zero.
+        Update the wavefunction with the mouse, while pausing
+        the  time evolution.
         """
 
         x, y = self.locate_mouse(event)
@@ -807,14 +814,14 @@ class App(QuantumAnimation):
 
     def clear_wavefunction(self, *args: tk.Event) -> None:
         """
-        Set the wavefunction to zero
+        Set the wavefunction to zero.
         """
         self.set_wavefunction("0")
         self.update_expected_energy_level()
 
     def update_potential_by_name(self, *event: tk.Event) -> None:
         """
-        Update the potential given entry input.
+        Update the potential using the potential entry input.
         """
         self.potential_is_reshaped = False
         self.potential_menu_string.set("Choose Preset Potential V(x)")
@@ -827,7 +834,7 @@ class App(QuantumAnimation):
 
     def update_potential_by_preset(self, name: str) -> None:
         """
-        Update the potential from the dropdown menu
+        Update the potential from the dropdown menu.
         """
         self.potential_is_reshaped = False
         no_prev_param_sliders = True if len(self.V_params) == 0 else False
@@ -844,10 +851,12 @@ class App(QuantumAnimation):
         self.update_energy_levels()
         if not no_prev_param_sliders or len(self.V_params) > 0:
             self.set_widgets_after_enter_potential()
+        if (name == "Infinite Square Well"):
+            self.rescale_potential_graph(0.0125)
 
     def update_potential_by_sketch(self, event: tk.Event) -> None:
         """
-        Update the potential given mouse input.
+        Update the potential using the mouse.
         """
 
         if not self._show_p:
