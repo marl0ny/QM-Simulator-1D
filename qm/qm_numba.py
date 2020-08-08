@@ -84,7 +84,8 @@ def _vect_add(a, b):
     return a + b
 
 class Wavefunction1D(Constants):
-    """Wavefunction class in 1D.
+    """
+    Wavefunction class in 1D.
 
     Attributes:
     x [np.ndarray]: wavefunction in the position basis
@@ -136,7 +137,8 @@ class Wavefunction1D(Constants):
             self.x = np.ascontiguousarray(self.x, np.complex128)
 
     def normalize(self):
-        """Normalize the wavefunction
+        """
+        Normalize the wavefunction
         """
         try:
             x2 = self.x*np.conj(self.x)
@@ -157,7 +159,8 @@ class Wavefunction1D(Constants):
         return np.fft.fftshift(np.fft.fft(self.x)/(self.N/10))
 
     def expectation_value(self, eigenvalues, eigenstates):
-        """Find the expectation value of the wavefunction
+        """
+        Find the expectation value of the wavefunction
         with respect to the eigenvalues and eigenstates
         of a Hermitian Operator
         """
@@ -171,7 +174,8 @@ class Wavefunction1D(Constants):
         return np.sum(np.dot(np.real(eigenvalues), prob))
 
     def expected_momentum(self):
-        """Find the momentum expectation value of the
+        """
+        Find the momentum expectation value of the
         wavefunction
         """
         F = np.fft.fft(self.x)
@@ -182,8 +186,9 @@ class Wavefunction1D(Constants):
         p = 2*np.pi*freq*self.hbar/self.L
         return np.dot(p, prob)
 
-    def avg_and_std(self, eigenvalues, eigenstates):
-        """Find the expectation value and the standard deviation
+    def average_and_standard_deviation(self, eigenvalues, eigenstates):
+        """
+        Find the expectation value and the standard deviation
         of the wavefunction with respect to the eigenvalues and
         eigenstates of a Hermitian Operator
         """
@@ -201,8 +206,9 @@ class Wavefunction1D(Constants):
             print(E)
             return (0., 0.)
 
-    def p_avg_and_std(self):
-        """Find the expectation value and the standard deviation
+    def momentum_average_and_standard_deviation(self):
+        """
+        Find the expectation value and the standard deviation
         of the wavefunction with respect to the eigenvalues and
         eigenstates of the momentum operator
         """
@@ -219,7 +225,8 @@ class Wavefunction1D(Constants):
         return (expval, sigma)
 
     def set_to_momentum_eigenstate(self):
-        """Set the wavefunction to an allowable
+        """
+        Set the wavefunction to an allowable
         momentum eigenstate.
         Return the momentum eigenvalue.
 
@@ -263,7 +270,8 @@ class Wavefunction1D(Constants):
         return p
 
     def set_to_eigenstate(self, eigenvalues, eigenstates, smear=False):
-        """Set the wavefunction to an eigenstate of
+        """
+        Set the wavefunction to an eigenstate of
         any operator. Given the eigenvalues and eigenvectors
         of the operator, reset the wavefunction to the
         most probable eigenstate, then return the

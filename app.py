@@ -12,7 +12,6 @@ from qm.constants import Constants
 from matplotlib.backends import backend_tkagg
 from animation import QuantumAnimation, scale
 import tkinter as tk
-from tkinter import ttk
 from typing import Tuple
 
 np.seterr(all='raise')
@@ -353,7 +352,12 @@ class App(QuantumAnimation):
         self.potential_menu_dict = {
             "Infinite Square Well": "0",
             "Simple Harmonic Oscillator": "x**2/2",
+            "Barrier in SHO": "x**2 + rect(150*x)/10",
             # "Potential Barrier": "10*rect(32*x)",
+            # "Double stepped potential": 
+            # "1/4 - (Sum(rect(4*b*a*(x-0.07)), "
+            # "(b, 1, 5)) + Sum(rect(4*b*a*(x+0.07))," 
+            # "(b, 1, 5)))/20",
             "Potential Well": "-rect(4*x)/2",
             # "Potential Well and Barrier":
             # "-2*rect(16*(x+1/4)) + 2*rect(16*(x-1/4))",
@@ -361,11 +365,13 @@ class App(QuantumAnimation):
             "Double Well":
                 "(1-rect((21/10)*(x-1/4))-rect((21/10)*(x+1/4)))/10",
             # "Double Well 2": "(1-rect(2*x)+rect(50*x)/10)/5",
-            # "Many Wells": "Sum(rect(150*b*(x-i/10+0.5))/60, (i, 0, 10))",
-            "Triangular Well": "sqrt(x**2)"
+            # "Double Well 3": "1/10-a*rect(2*k1*x)/10 + b*rect(50*x)/15",
+            # "Many Wells": "a*(1/60)*Sum(rect(150*b*(x-i*0.1+0.5)), (i, 0, 10))",
+            "Many Wells": "a*0.017*Sum(rect(150*b*(x-i*0.1+0.5)), (i, 0, 10))",
             # "Simple Harmonic Oscillators": 
             #     "Sum(rect(int(4*l)*(x+0.8725 - j/int(4*l)))*"
             #     "(2*(x+0.8725 - j/int(4*l)))**2, (j, 1, 10))",
+            "Triangular Well": "sqrt(x**2)"
             }
         self.potential_menu_string = tk.StringVar(self.window)
         self.potential_menu_string.set("Choose Preset Potential V(x)")
@@ -853,6 +859,8 @@ class App(QuantumAnimation):
             self.set_widgets_after_enter_potential()
         if (name == "Infinite Square Well"):
             self.rescale_potential_graph(0.0125)
+        if (name == "Barrier in SHO"):
+            self.rescale_potential_graph(0.5)
 
     def update_potential_by_sketch(self, event: tk.Event) -> None:
         """

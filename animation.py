@@ -389,7 +389,7 @@ class QuantumAnimation(Constants):
         self._show_p = True
         psi_text0 = self.lines[0].get_text().replace("x", "p")
         psi_text6 = self.lines[6].get_text().replace("x", "p")
-        psi_text7 = self.lines[6].get_text().replace("x", "p")
+        psi_text7 = self.lines[7].get_text().replace("x", "p")
         self.lines[0].set_text(psi_text0)
         self.lines[6].set_text(psi_text6)
         self.lines[7].set_text(psi_text7)
@@ -441,7 +441,7 @@ class QuantumAnimation(Constants):
         self._show_p = False
         psi_text0 = self.lines[0].get_text().replace("(p)", "(x)")
         psi_text6 = self.lines[6].get_text().replace("(p)", "(x)")
-        psi_text7 = self.lines[6].get_text().replace("(p)", "(x)")
+        psi_text7 = self.lines[7].get_text().replace("(p)", "(x)")
         self.lines[0].set_text(psi_text0)
         self.lines[6].set_text(psi_text6)
         self.lines[7].set_text(psi_text7)
@@ -998,9 +998,13 @@ class QuantumAnimation(Constants):
         elif self._show_exp_val and self._msg_i < 0:
             if not hasattr(self.U_t, "energy_eigenvalues"):
                 self.U_t.set_energy_eigenstates()
-            x_mean, x_sigma = self.psi.avg_and_std(self.x, self.identity_matrix)
-            p_mean, p_sigma = self.psi.p_avg_and_std()
-            E_mean, E_sigma = self.psi.avg_and_std(
+            x_mean, x_sigma = \
+                self.psi.average_and_standard_deviation(
+                    self.x, self.identity_matrix)
+            p_mean, p_sigma = \
+                self.psi.momentum_average_and_standard_deviation()
+            E_mean, E_sigma = \
+                self.psi.average_and_standard_deviation(
                 self.U_t.energy_eigenvalues,
                 self.U_t.energy_eigenstates
                 )
