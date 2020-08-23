@@ -10,7 +10,7 @@ This project would not be possible without the following libraries: Numpy for nu
 
 ## Instructions:
 
-Make sure that you have at least Python 3.6.5 with Numpy, Matplotlib and Sympy installed. Install these by running `pip3 install numpy matplotlib sympy`.  You may also optionally install Numba, which improves performance.  To install Numba, run `pip3 install numba`.
+Make sure that you have at least Python 3.6.5 with Numpy, Matplotlib, Sympy and Scipy installed. Install these by running `pip3 install numpy matplotlib sympy scipy`. TKinter is also required and (on some Linux distributions) it can be installed with `sudo apt-get install python3-tk`.  You may also optionally install Numba, which improves performance.  To install Numba, run `pip3 install numba`.
 
 Obtain all the necessary code by cloning this repository or downloading it, then run the file `app.py`. You should see something like:
 
