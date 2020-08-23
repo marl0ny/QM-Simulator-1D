@@ -3,6 +3,7 @@
 numpy >= 1.14.2
 sympy >= 1.1.1
 matplotlib >= 2.2.2
+scipy >= 1.5.2
 #tkinter >= 8.6
 
 #The following is actually 
