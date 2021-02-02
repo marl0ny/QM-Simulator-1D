@@ -12,6 +12,7 @@ from functions import rect, convert_to_function, Function
 from qm.constants import Constants
 from qm import Wavefunction1D, UnitaryOperator1D
 from time import perf_counter
+import matplotlib
 
 
 np.seterr(all='raise')
@@ -1057,9 +1058,18 @@ class QuantumAnimation(Constants):
         be static with blit always enabled.
         """
         if self.main_animation._blit:
-            self.main_animation._blit_clear(
-                self.main_animation._drawn_artists, 
-                self.main_animation._blit_cache)
+            base = 100.0
+            version_number = 0
+            for n in matplotlib.__version__.split('.'):
+                version_number += int(n)*base
+                base /= 10.0
+            if version_number < 330.0:
+                self.main_animation._blit_clear(
+                    self.main_animation._drawn_artists, 
+                    self.main_animation._blit_cache)
+            else:
+                self.main_animation._blit_clear(
+                    self.main_animation._drawn_artists)
             self.main_animation._blit = False
         else:
             # self.main_animation._init_draw()
