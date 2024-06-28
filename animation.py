@@ -139,6 +139,8 @@ class QuantumAnimation(Constants):
 
         super().__init__()
 
+        self.U_t = None
+
         # String Attributes
         self._KE_ltx = r"-\frac{\hbar^2}{2m} \frac{d^2}{dx^2}"
         self._lmts_str = r"  %s$ \leq x \leq $%s" % (str(np.round(self.x0, 1)),

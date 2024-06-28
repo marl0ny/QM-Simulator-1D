@@ -245,8 +245,8 @@ class UnitaryOperator1D(Constants):
         m, hbar, e, L, N, dx, dt = self._get_constants()
 
         # Initialize A and B matrices
-        A = np.zeros([N, N], np.complex64)
-        B = np.zeros([N, N], np.complex64)
+        A = np.zeros([N, N], np.complex128)
+        B = np.zeros([N, N], np.complex128)
 
         # \Delta t \frac{i \hbar}{2m \Delta x^2}
         K = (dt*1.0j*hbar)/(4*m*dx**2)
@@ -281,7 +281,7 @@ class UnitaryOperator1D(Constants):
         # since the wavefunction and all operators are
         # in the position basis, the identity matrix
         # is the position operator.
-        self.id = np.identity(len(self.U[0]), np.complex)
+        self.id = np.identity(len(self.U[0]), np.complex128)
 
         # Get the Hamiltonian from the unitary operator
         # and aquire the energy eigenstates.
